@@ -1,0 +1,8 @@
+# Dependencies & OS files
+node_modules/
+.DS_Store
+*.log
+__pycache__/
+.env
+.idea/
+.vscode/

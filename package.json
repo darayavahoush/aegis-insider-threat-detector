@@ -1,0 +1,22 @@
+{
+  "name": "aegis-behavioral-insider-threat-detector",
+  "version": "1.0.0",
+  "description": "Multi-Modal Behavioral Biometric Cybersecurity System for Insider Threat & Impersonation Detection (Keystroke Dynamics, Voice Acoustic Analysis, and Continuous Zero-Trust Authentication)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "serve:py": "python3 server.py",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "cybersecurity",
+    "insider-threat-detection",
+    "keystroke-dynamics",
+    "voice-biometrics",
+    "continuous-authentication",
+    "zero-trust",
+    "soc-dashboard"
+  ],
+  "author": "Ananya Sridhar",
+  "license": "Apache-2.0"
+}

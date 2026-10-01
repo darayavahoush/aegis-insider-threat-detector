@@ -1,114 +1,99 @@
-# 🛡️ AEGIS: Continuous Behavioral Biometrics & Insider Threat Detection Platform
+# 🛡️ AEGIS: React.js & FastAPI Continuous Behavioral Biometrics Platform
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Zero-Dependency](https://img.shields.io/badge/Dependencies-Zero-brightgreen.svg)](#)
+[![React](https://img.shields.io/badge/Frontend-React_18_%2B_Vite-61dafb.svg?logo=react&logoColor=black)](#)
+[![FastAPI](https://img.shields.io/badge/Backend-FastAPI_%2B_Uvicorn-009688.svg?logo=fastapi&logoColor=white)](#)
 [![Biometrics](https://img.shields.io/badge/Modality-Keystroke_Dynamics_%2B_Voice_Acoustics-cyan.svg)](#)
 [![MITRE](https://img.shields.io/badge/Framework-MITRE_ATT%26CK-purple.svg)](#)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-> **Continuous Zero-Trust Authentication & Behavioral Anomaly Detection against Insider Threats, Account Takeover, and Console Hijacking.**
-
----
-
-## 🎯 Executive Overview & Problem Statement
-
-In modern enterprise security, **passwords, tokens, and multi-factor authentication (MFA) only authenticate a user at the perimeter during login**. Once a session is established:
-- **Physical Console Hijacking**: An authorized employee steps away from an unlocked terminal; an unauthorized colleague or intruder accesses sensitive databases.
-- **Stolen Credentials & Lateral Movement**: An adversary possesses valid credentials (passwords, Kerberos tickets, API tokens) and bypasses traditional boundary firewalls (**MITRE ATT&CK T1078**).
-- **Synthetic Automation / BadUSB**: Malicious scripts and BadUSB microcontrollers inject automated keystrokes with inhuman precision (**MITRE ATT&CK T1056**).
-- **Coercion & Insider Duress**: An authorized employee forced to execute exfiltration under duress.
-
-**AEGIS** solves this by enforcing **Continuous Behavioral Biometrics**. Rather than asking *"What do you know?"* or *"What do you have?"*, Aegis continuously evaluates *"How do you type and speak?"* through subconscious neuromuscular motor patterns (keystroke dynamics) and vocal tract acoustics.
+> **Continuous Zero-Trust Behavioral Authentication & Insider Threat Detection Platform**  
+> Powered by **React.js** on the frontend and **FastAPI + Uvicorn** on the backend.
 
 ---
 
-## 🔬 Mathematical & Biometric Formulation
+## 🎯 Architecture Overview
 
-### 1. Keystroke Dynamics (KSD) Engine
+```
++---------------------------------------------------------------------------------------+
+|                                  AEGIS ARCHITECTURE                                   |
++---------------------------------------------------------------------------------------+
+|                                                                                       |
+|   +-------------------------------------------------------------------------------+   |
+|   |                        REACT.JS FRONTEND (Vite / Port 5173)                   |   |
+|   |                                                                               |   |
+|   |   [Hardware Keystrokes]                  [Web Audio API DSP]                  |   |
+|   |   - useKeystrokeCollector                - useVoiceRecorder                   |   |
+|   |   - Sub-ms Keydown/Keyup                 - Live FFT Spectrogram (Canvas)      |   |
+|   |   - Dwell / Flight / Digraphs            - Autocorrelation Pitch (F0) & Timbre|   |
+|   +-------------------------------------------------------------------------------+   |
+|                                          |                                            |
+|                                          v (REST / JSON Payload)                      |
+|   +-------------------------------------------------------------------------------+   |
+|   |                    FASTAPI + UVICORN BACKEND (Port 8000)                      |   |
+|   |                                                                               |   |
+|   |   [Python Keystroke Engine]              [Python Voice Acoustic Engine]       |   |
+|   |   - Multi-variate Z-scores               - F0 Pitch & Spectral Centroid Δ     |   |
+|   |   - Mahalanobis Distance                 - Energy RMS & ZCR Comparison        |   |
+|   |                                                                               |   |
+|   |                     [Python Threat Fusion Engine]                             |   |
+|   |                     Risk = w_k * A_ksd + w_v * A_voice                        |   |
+|   |                                                                               |   |
+|   |                     [SOC Enforcement & MITRE ATT&CK]                          |   |
+|   |                     T1078.003 (Console Hijack) | T1056.001 (Injection Bot)    |   |
+|   +-------------------------------------------------------------------------------+   |
++---------------------------------------------------------------------------------------+
+```
 
-Keystroke dynamics measures sub-millisecond temporal intervals extracted from `keydown` and `keyup` hardware events:
+---
 
-1. **Dwell Time ($T_{dwell}$)**: Duration a specific key $k$ is depressed:
-   $$T_{dwell}(k) = t_{keyup}(k) - t_{keydown}(k)$$
-2. **Flight Time ($T_{flight}$ / Release-to-Press Latency)**: Inter-key latency between releasing key $k-1$ and depressing key $k$:
-   $$T_{flight}(k-1, k) = t_{keydown}(k) - t_{keyup}(k-1)$$
-3. **Press-to-Press Digraph Latency ($T_{pp}$)**: Transition latency for common bigram pairs (e.g., `th`, `in`, `er`, `he`):
-   $$T_{pp}(k-1, k) = t_{keydown}(k) - t_{keydown}(k-1)$$
-4. **Rhythm Stability (Coefficient of Variation - $CV$)**: Ratio of standard deviation to mean of flight times:
-   $$CV = \frac{\sigma_{flight}}{\mu_{flight}}$$
+## ⚡ Quickstart: Running Frontend & Backend
 
-### 2. Multi-Variate Anomaly Distance Metric
+### 1. Start the FastAPI + Uvicorn Backend
+```bash
+# From project root
+python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+# or
+npm run dev:backend
+```
+- **Backend API**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Interactive Swagger Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Built React App (Single-Port Mode)**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
-For each feature $i \in \{ \text{dwell}, \text{flight}, \text{digraphs}, \text{rhythm} \}$, deviation from the enrolled baseline $(\mu_i, \sigma_i)$ is normalized via standardized Z-score distance:
+### 2. Start the React + Vite Development Server (with HMR)
+```bash
+# In another terminal
+npm --prefix frontend run dev
+# or
+npm run dev:frontend
+```
+- **React App (Vite Dev Server)**: [http://localhost:5173](http://localhost:5173)
 
-$$Z_i = \frac{|x_i - \mu_{base, i}|}{\sigma_{base, i} + \epsilon}$$
+---
 
-The composite keystroke anomaly score is bounded between $0.0$ and $1.0$ using exponential sigmoidal mapping:
+## 🔬 Core Biometric & ML Parameters
 
-$$A_{ksd} = 1 - \exp\left( -\frac{1}{2} \sum_{i} w_i Z_i \right)$$
+### 1. Keystroke Dynamics Engine (`backend/engines/keystroke_engine.py`)
+- **Dwell Time ($T_{dwell}$)**: Key release timestamp minus key press timestamp ($t_{keyup} - t_{keydown}$).
+- **Flight Time ($T_{flight}$)**: Latency between key release and subsequent key press.
+- **Digraph Matrices**: Muscle memory transition latencies for frequent character pairs (`th`, `he`, `in`, `er`, `an`, `re`, `on`).
+- **Rhythm Stability ($CV$)**: Coefficient of variation ($\sigma_{flight} / \mu_{flight}$).
+- **Synthetic Bot Detection**: Zero-variance jitter detector flags automated keystroke injection tools (**MITRE T1056.001**).
 
-### 3. Voice Acoustic Signal Analysis (Web Audio API)
+### 2. Voice Acoustic DSP Engine (`backend/engines/voice_engine.py`)
+- **Fundamental Frequency ($F_0$ / Pitch)**: Extracted via real-time time-domain autocorrelation ($R_{xx}(\tau)$).
+- **Spectral Centroid**: Frequency center of mass representing vocal timbre and formant brightness.
+- **Root-Mean-Square (RMS)**: Speech projection volume dynamics.
+- **Zero-Crossing Rate (ZCR)**: Frequency of waveform sign inversions.
 
-When step-up verification is needed, Aegis analyzes vocal tract resonances using the browser's native Web Audio API:
-- **Fundamental Frequency ($F_0$ / Pitch)**: Extracted via time-domain autocorrelation:
-  $$R_{xx}(\tau) = \sum_{n} x[n] x[n+\tau] \implies F_0 = \frac{f_s}{\tau_{max}}$$
-- **Spectral Centroid (Timbre Brightness)**: Center of mass of the frequency spectrum:
-  $$\text{Centroid} = \frac{\sum_{k} f_k \cdot |X[k]|}{\sum_{k} |X[k]|}$$
-- **Root-Mean-Square (RMS / Energy)**: Voice volume dynamics:
-  $$\text{RMS} = \sqrt{\frac{1}{N} \sum_{n=1}^{N} x[n]^2}$$
-- **Zero-Crossing Rate (ZCR)**: Measure of spectral roughness and unvoiced consonantal sounds.
-
-### 4. Multi-Modal Risk Fusion & Adaptive Thresholding
-
-$$Risk(t) = w_{ksd} \cdot A_{ksd} + w_{voice} \cdot A_{voice} + w_{context} \cdot A_{context}$$
+### 3. Multi-Modal Threat Fusion Engine (`backend/engines/threat_engine.py`)
+$$Risk(t) = 0.55 \cdot A_{keystroke} + 0.35 \cdot A_{voice} + 0.10 \cdot A_{mouseContext}$$
 
 | Risk Score | Classification | SOC Action |
 | :--- | :--- | :--- |
 | **0% - 25%** | `TRUSTED / AUTHENTICATED` | Seamless, uninterrupted access. |
-| **26% - 50%** | `ELEVATED DRIFT` | Passive telemetry logging (fatigue monitoring). |
-| **51% - 75%** | `SUSPICIOUS ANOMALY` | Step-up biometric challenge (Voice / FIDO2 prompt). |
+| **26% - 50%** | `ELEVATED DRIFT` | Passive monitoring (fatigue / posture drift). |
+| **51% - 75%** | `SUSPICIOUS ANOMALY` | Step-up biometric challenge (Voice / Hardware MFA). |
 | **76% - 100%** | `CRITICAL INSIDER THREAT` | **Automated Session Quarantine**, Token Revoked, SOC Alert. |
-
----
-
-## 🚀 Key Features in the Interactive Demo
-
-- 🖥️ **Continuous Authentication Terminal**: Realistic simulated enterprise bastion console with sub-millisecond keystroke telemetry HUD and live dwell oscilloscope.
-- 🎙️ **Voice Biometrics Console**: Live microphone recording with real-time waveform and FFT spectrogram canvas, extracting pitch ($F_0$) and spectral timbre.
-- 👤 **Biometric Enrollment Studio**: Guided calibration wizard to enroll your own custom typing cadence and vocal profile in seconds.
-- 🚨 **Adversary Sandbox**: Pre-configured attack injection tests:
-  - *Legitimate Employee (Normal operations)*
-  - *Physical Impersonator (Stolen unlocked workstation)*
-  - *Synthetic Keystroke Injection (BadUSB / Python macro with 0ms jitter)*
-  - *Coerced Insider Under Duress (Erratic cadence & 22% backspaces)*
-  - *Voice Acoustic Spoofing / Deepfake*
-- 🛡️ **SOC Incident Center**: Real-time SIEM event stream with MITRE ATT&CK correlation, one-click session quarantine, and exportable forensic JSON audit log.
-- 🔒 **Privacy By Design**: Zero keylogging of sensitive passwords; only non-reversible timing intervals and acoustic moments are stored.
-
----
-
-## ⚡ Quickstart & Running the Application
-
-This project is built with **zero external dependencies** using vanilla ES2022+ web APIs, HTML5 Canvas, Web Audio API, and native Node.js / Python servers.
-
-### Option A: Using Node.js (Recommended)
-```bash
-# Start the lightweight Node server (port 3000)
-npm start
-# or
-node server.js
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-
-### Option B: Using Python 3
-```bash
-python3 server.py
-# or
-npm run serve:py
-```
-Open **[http://localhost:3000](http://localhost:3000)** in your browser.
-
-### Option C: Standalone Direct Launch
-Simply double-click or open `index.html` directly in any modern browser (Chrome, Firefox, Safari, Edge).
 
 ---
 
@@ -116,33 +101,32 @@ Simply double-click or open `index.html` directly in any modern browser (Chrome,
 
 ```
 .
-├── index.html              # Main application UI and SOC dashboard
-├── css/
-│   └── style.css           # Futuristic dark SOC design, glassmorphism, responsive grid
-├── js/
-│   ├── app.js              # Main coordinator and event orchestration
-│   ├── keystroke-engine.js  # Millisecond event capture, dwell/flight, digraphs, Z-scores
-│   ├── voice-engine.js      # Web Audio API, autocorrelation pitch detector, spectral centroid
-│   ├── threat-engine.js     # Multi-modal fusion, adaptive thresholds, MITRE ATT&CK mapping
-│   ├── visualizer.js        # Canvas oscilloscopes, spectrograms, and risk timeline
-│   ├── presets.js           # Enrolled baselines and adversary attack personas
-│   └── storage.js           # LocalStorage persistence for profiles and SOC audit logs
-├── server.js               # Zero-dependency Node.js HTTP & telemetry server
-├── server.py               # Zero-dependency Python 3 HTTP server
-├── package.json            # Project manifest & execution scripts
-├── README.md               # Architecture documentation & mathematical modeling
-└── .gitignore              # Standard git exclusion rules
+├── backend/
+│   ├── main.py                  # FastAPI app (CORS, REST routes, static mounting)
+│   ├── models.py                # Pydantic schemas for keystrokes, audio, SIEM events
+│   ├── database.py              # In-memory baseline store and audit log
+│   ├── requirements.txt         # FastAPI, Uvicorn, NumPy, Pydantic
+│   └── engines/
+│       ├── keystroke_engine.py  # Python multi-variate Z-score evaluator
+│       ├── voice_engine.py      # Acoustic pitch & spectral centroid evaluator
+│       └── threat_engine.py     # Multi-modal fusion & MITRE ATT&CK classifier
+├── frontend/
+│   ├── package.json             # React 18, Vite, Lucide-React
+│   ├── vite.config.js           # Vite dev config with /api proxy to FastAPI
+│   ├── index.html               # React HTML shell
+│   └── src/
+│       ├── main.jsx             # Entry point
+│       ├── App.jsx              # Main dashboard layout
+│       ├── components/          # React views (Terminal, Voice, Enrollment, Sandbox, SOC, Docs)
+│       ├── hooks/               # useKeystrokeCollector, useVoiceRecorder
+│       ├── services/            # api.js client
+│       └── styles/              # Dark SOC theme CSS
+├── package.json                 # Unified workspace scripts
+├── README.md                    # Documentation
+└── .gitignore                   # Ignore rules
 ```
 
 ---
 
-## 🛡️ Enterprise Security & Privacy Compliance
-
-- **No Keylogging**: Passwords, documents, and sensitive inputs are never logged or stored. Aegis extracts temporal deltas ($\Delta t$) and discards character values.
-- **GDPR & CCPA Compliant**: Biometric features are transformed into statistical distribution parameters $(\mu, \sigma)$ that cannot reconstruct raw voice recordings or textual transcripts.
-- **Defense in Depth**: Integrates with Enterprise SIEMs (Splunk, Elastic, Sentinel) via standard webhook / syslog APIs.
-
----
-
 ## 📄 License
-Apache License 2.0. Built for enterprise defense and continuous authentication research.
+Apache License 2.0. Built for enterprise defense and continuous biometric authentication research.

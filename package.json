@@ -1,19 +1,21 @@
 {
   "name": "aegis-behavioral-insider-threat-detector",
-  "version": "1.0.0",
-  "description": "Multi-Modal Behavioral Biometric Cybersecurity System for Insider Threat & Impersonation Detection (Keystroke Dynamics, Voice Acoustic Analysis, and Continuous Zero-Trust Authentication)",
-  "main": "server.js",
+  "version": "2.0.0",
+  "description": "Multi-Modal Behavioral Biometric Cybersecurity System for Insider Threat & Impersonation Detection (Keystroke Dynamics, Voice Acoustic Analysis, Continuous Zero-Trust Authentication) built with React.js and FastAPI + Uvicorn.",
   "scripts": {
-    "start": "node server.js",
-    "serve:py": "python3 server.py",
-    "dev": "node server.js"
+    "start": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
+    "dev:backend": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:frontend": "npm --prefix frontend run build"
   },
   "keywords": [
     "cybersecurity",
+    "react",
+    "fastapi",
+    "uvicorn",
     "insider-threat-detection",
     "keystroke-dynamics",
     "voice-biometrics",
-    "continuous-authentication",
     "zero-trust",
     "soc-dashboard"
   ],

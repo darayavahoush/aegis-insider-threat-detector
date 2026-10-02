@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const custom = storage.getCustomProfile();
       if (custom) return custom;
     }
-    return PRESET_PROFILES[id] || PRESET_PROFILES.sarah_vance;
+    return PRESET_PROFILES[id] || PRESET_PROFILES.ananya_sridhar;
   }
 
   function updateActiveProfile(id) {

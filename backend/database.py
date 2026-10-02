@@ -7,7 +7,7 @@ from .models import (
     AuditEvent
 )
 
-# Baseline Enrolled Identities (Default is Ananya Sridhar - Authorized User)
+# Baseline Enrolled Identities (Only Ananya Sridhar & Avinandan)
 PROFILES: Dict[str, dict] = {
     "ananya_sridhar": {
         "id": "ananya_sridhar",
@@ -50,70 +50,45 @@ PROFILES: Dict[str, dict] = {
             sample_count=40
         )
     },
-    "sarah_vance": {
-        "id": "sarah_vance",
-        "name": "Sarah Vance",
-        "role": "Lead Cloud Security Analyst",
-        "department": "Threat Operations",
-        "clearance": "Level-4 (Restricted Systems)",
+    "avinandan": {
+        "id": "avinandan",
+        "name": "Avinandan",
+        "role": "Staff Security Engineer & Co-Owner",
+        "department": "Zero-Trust Infrastructure",
+        "clearance": "Level-5 (Master Access)",
         "keystroke_baseline": KeystrokeFeatureVector(
-            key_count=120,
-            dwell_mean=95.0,
-            dwell_std=20.0,
-            flight_mean=120.0,
-            flight_std=32.0,
-            rhythm_cv=0.25,
-            wpm=68,
+            key_count=130,
+            dwell_mean=112.0,
+            dwell_letter_mean=104.0,
+            dwell_space_mean=176.0,
+            dwell_std=26.0,
+            flight_mean=135.0,
+            flight_motor_mean=116.0,
+            flight_std=36.0,
+            pause_rate=0.05,
+            rhythm_cv=0.27,
+            wpm=64,
             backspace_rate=0.03,
             digraph_stats={
-                "th": DigraphDetail(mean=98.0, count=24),
-                "he": DigraphDetail(mean=92.0, count=20),
-                "in": DigraphDetail(mean=110.0, count=18),
-                "er": DigraphDetail(mean=105.0, count=22),
-                "an": DigraphDetail(mean=115.0, count=15),
-                "re": DigraphDetail(mean=102.0, count=19),
-                "on": DigraphDetail(mean=112.0, count=14)
+                "th": DigraphDetail(mean=108.0, count=22),
+                "he": DigraphDetail(mean=102.0, count=20),
+                "in": DigraphDetail(mean=116.0, count=18),
+                "er": DigraphDetail(mean=110.0, count=21),
+                "an": DigraphDetail(mean=122.0, count=16),
+                "re": DigraphDetail(mean=112.0, count=19),
+                "on": DigraphDetail(mean=118.0, count=15)
             }
         ),
         "voice_baseline": VoiceFeatureVector(
-            pitch_mean=195.0,
-            pitch_std=22.0,
-            centroid_mean=1740.0,
-            rms_mean=0.22,
-            zcr_mean=0.082,
+            pitch_mean=132.0,
+            pitch_std=20.0,
+            centroid_mean=1520.0,
+            formant_ratio=1.20,
+            spectral_rolloff=2450.0,
+            hnr=16.0,
+            rms_mean=0.21,
+            zcr_mean=0.076,
             sample_count=45
-        )
-    },
-    "david_chen": {
-        "id": "david_chen",
-        "name": "David Chen",
-        "role": "Staff Database Architect",
-        "department": "Core Infrastructure",
-        "clearance": "Level-5 (Global Admin)",
-        "keystroke_baseline": KeystrokeFeatureVector(
-            key_count=150,
-            dwell_mean=125.0,
-            dwell_std=25.0,
-            flight_mean=165.0,
-            flight_std=45.0,
-            rhythm_cv=0.26,
-            wpm=50,
-            backspace_rate=0.05,
-            digraph_stats={
-                "se": DigraphDetail(mean=140.0, count=30),
-                "le": DigraphDetail(mean=135.0, count=25),
-                "ct": DigraphDetail(mean=155.0, count=28),
-                "fr": DigraphDetail(mean=148.0, count=22),
-                "om": DigraphDetail(mean=138.0, count=24)
-            }
-        ),
-        "voice_baseline": VoiceFeatureVector(
-            pitch_mean=118.0,
-            pitch_std=16.0,
-            centroid_mean=1420.0,
-            rms_mean=0.20,
-            zcr_mean=0.075,
-            sample_count=40
         )
     }
 }

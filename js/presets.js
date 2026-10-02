@@ -3,66 +3,68 @@
  */
 
 const PRESET_PROFILES = {
-  sarah_vance: {
-    id: 'sarah_vance',
-    name: 'Sarah Vance',
-    role: 'Lead Cloud Security Analyst',
-    department: 'Threat Operations',
-    clearance: 'Level-4 (Restricted Systems)',
+  ananya_sridhar: {
+    id: 'ananya_sridhar',
+    name: 'Ananya Sridhar',
+    role: 'Authorized System Owner / Analyst',
+    department: 'Security Intelligence',
+    clearance: 'Level-5 (Master Access)',
     keystrokeBaseline: {
-      dwellMean: 95,
-      dwellStd: 18,
-      flightMean: 120,
-      flightStd: 30,
-      rhythmCV: 0.25,
-      wpm: 68,
-      backspaceRate: 0.03,
+      dwellMean: 105,
+      dwellStd: 20,
+      flightMean: 130,
+      flightStd: 35,
+      rhythmCV: 0.28,
+      wpm: 60,
+      backspaceRate: 0.04,
       digraphStats: {
-        'th': { mean: 98, count: 24 },
-        'he': { mean: 92, count: 20 },
-        'in': { mean: 110, count: 18 },
-        'er': { mean: 105, count: 22 },
-        'an': { mean: 115, count: 15 },
-        're': { mean: 102, count: 19 },
-        'on': { mean: 112, count: 14 }
+        'th': { mean: 110, count: 20 },
+        'he': { mean: 105, count: 18 },
+        'in': { mean: 115, count: 16 },
+        'er': { mean: 112, count: 19 },
+        'an': { mean: 120, count: 15 },
+        're': { mean: 110, count: 17 },
+        'on': { mean: 118, count: 14 }
       }
     },
     voiceBaseline: {
       pitchMean: 195,
-      pitchStd: 20,
-      centroidMean: 1740,
-      rmsMean: 0.22,
-      zcrMean: 0.082
+      pitchStd: 22,
+      centroidMean: 1720,
+      rmsMean: 0.20,
+      zcrMean: 0.080
     }
   },
-  david_chen: {
-    id: 'david_chen',
-    name: 'David Chen',
-    role: 'Staff Database Architect',
-    department: 'Core Infrastructure',
-    clearance: 'Level-5 (Global Admin)',
+  avinandan: {
+    id: 'avinandan',
+    name: 'Avinandan',
+    role: 'Staff Security Engineer & Co-Owner',
+    department: 'Zero-Trust Infrastructure',
+    clearance: 'Level-5 (Master Access)',
     keystrokeBaseline: {
-      dwellMean: 125,
-      dwellStd: 24,
-      flightMean: 165,
-      flightStd: 42,
-      rhythmCV: 0.26,
-      wpm: 50,
-      backspaceRate: 0.05,
+      dwellMean: 112,
+      dwellStd: 22,
+      flightMean: 135,
+      flightStd: 36,
+      rhythmCV: 0.27,
+      wpm: 64,
+      backspaceRate: 0.03,
       digraphStats: {
-        'se': { mean: 140, count: 30 },
-        'le': { mean: 135, count: 25 },
-        'ct': { mean: 155, count: 28 },
-        'fr': { mean: 148, count: 22 },
-        'om': { mean: 138, count: 24 }
+        'th': { mean: 108, count: 22 },
+        'he': { mean: 102, count: 20 },
+        'in': { mean: 116, count: 18 },
+        'er': { mean: 110, count: 21 },
+        'an': { mean: 122, count: 16 },
+        're': { mean: 112, count: 19 },
+        'on': { mean: 118, count: 15 }
       }
     },
     voiceBaseline: {
-      pitchMean: 118,
-      pitchStd: 14,
-      centroidMean: 1420,
-      rmsMean: 0.20,
-      zcrMean: 0.075
+      pitchMean: 132,
+      pitchStd: 18,
+      centroidMean: 1520,
+      rmsMean: 0.21,
+      zcrMean: 0.076
     }
   }
 };

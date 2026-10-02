@@ -30,9 +30,9 @@ class StorageManager {
 
   getSelectedProfileId() {
     try {
-      return localStorage.getItem(this.SELECTED_PROFILE_KEY) || 'sarah_vance';
+      return localStorage.getItem(this.SELECTED_PROFILE_KEY) || 'ananya_sridhar';
     } catch (e) {
-      return 'sarah_vance';
+      return 'ananya_sridhar';
     }
   }
 

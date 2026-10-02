@@ -59,7 +59,7 @@ class ThreatAssessmentResponse(BaseModel):
     details: Dict[str, Any] = Field(default_factory=dict)
 
 class TelemetryEvaluationRequest(BaseModel):
-    profile_id: str = "sarah_vance"
+    profile_id: str = "ananya_sridhar"
     keystrokes: Optional[KeystrokeFeatureVector] = None
     voice: Optional[VoiceFeatureVector] = None
     mouse_context: Optional[MouseContextVector] = None

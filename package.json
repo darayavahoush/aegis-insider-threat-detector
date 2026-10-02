@@ -3,8 +3,8 @@
   "version": "2.0.0",
   "description": "Multi-Modal Behavioral Biometric Cybersecurity System for Insider Threat & Impersonation Detection (Keystroke Dynamics, Voice Acoustic Analysis, Continuous Zero-Trust Authentication) built with React.js and FastAPI + Uvicorn.",
   "scripts": {
-    "start": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000",
-    "dev:backend": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload",
+    "start": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8001",
+    "dev:backend": "python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8001 --reload",
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build"
   },

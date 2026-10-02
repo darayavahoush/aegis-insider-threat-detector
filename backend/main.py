@@ -80,12 +80,18 @@ def enroll_profile(request: ProfileEnrollmentRequest):
 
 @app.post("/api/profiles/calibrate")
 def auto_calibrate_profile(payload: TelemetryEvaluationRequest):
-    if not payload.keystrokes:
-        raise HTTPException(status_code=400, detail="Keystroke features required for calibration")
+    if not payload.keystrokes and not payload.voice:
+        raise HTTPException(status_code=400, detail="Keystroke or voice features required for calibration")
     updated = calibrate_profile(payload.profile_id, payload.keystrokes, payload.voice)
+    calibrated_types = []
+    if payload.keystrokes:
+        calibrated_types.append("typing dynamics")
+    if payload.voice:
+        calibrated_types.append("voice acoustics")
+    msg = f"Biometric baseline successfully calibrated for {' & '.join(calibrated_types)}!"
     return {
         "success": True,
-        "message": f"Biometric baseline successfully calibrated to {updated['name']}'s typing rhythm!",
+        "message": msg,
         "profile": {
             "id": updated["id"],
             "name": updated["name"],

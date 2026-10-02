@@ -90,16 +90,17 @@ export default function App() {
 
   // Evaluation trigger to FastAPI
   const triggerEvaluation = useCallback(
-    async (overrideFeatures = null, profileIdOverride = null) => {
+    async (overrideFeatures = null, profileIdOverride = null, voiceOverride = undefined) => {
       const pId = profileIdOverride || selectedProfileId;
       const features = overrideFeatures || collector.getFeatures();
+      const vFeatures = voiceOverride !== undefined ? voiceOverride : simulatedVoice;
 
-      if (!features && !simulatedVoice) return;
+      if (!features && !vFeatures) return;
 
       const payload = {
         profile_id: pId,
         keystrokes: features,
-        voice: simulatedVoice || null,
+        voice: vFeatures || null,
         mouse_context: { anomaly_score: 0.05 }
       };
 
@@ -115,21 +116,21 @@ export default function App() {
     [selectedProfileId, collector, simulatedVoice]
   );
 
-  // Debounce typing evaluation
+  // Responsive keystroke evaluation
   useEffect(() => {
-    if (collector.keyCount >= 3) {
+    if (collector.keyCount >= 4) {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         triggerEvaluation();
-      }, 450);
+      }, 200);
     }
   }, [collector.keyCount, triggerEvaluation]);
 
   // 1-Click Auto-Calibrate (Teaches the model: "This is Me!")
   const handleAutoCalibrate = async () => {
     const feat = collector.getFeatures();
-    if (!feat || feat.key_count < 5) {
-      showToast('⚠️ Type at least 5 to 10 words into the terminal first so the system can measure your natural speed!', 'warn');
+    if (!feat || feat.key_count < 4) {
+      showToast('⚠️ Type at least a few words into the terminal first so the system can measure your natural rhythm!', 'warn');
       return;
     }
 
@@ -141,10 +142,12 @@ export default function App() {
       });
 
       setActiveProfile(res.profile);
-      showToast(`🎯 Profile Calibrated! System now recognizes your natural hold (${feat.dwell_mean}ms) and speed (${feat.wpm} WPM).`, 'success');
+      const dwellLet = feat.dwell_letter_mean || feat.dwell_mean;
+      const flightMot = feat.flight_motor_mean || feat.flight_mean;
+      showToast(`🎯 Baseline Locked! Now tuned to your motor hold (${dwellLet}ms), transition (${flightMot}ms), and ${feat.wpm} WPM.`, 'success');
 
       // Immediate re-evaluation with the newly updated baseline
-      triggerEvaluation(feat, selectedProfileId);
+      await triggerEvaluation(feat, selectedProfileId);
     } catch (err) {
       showToast('Calibration failed: ' + err.message, 'error');
     }
@@ -155,9 +158,13 @@ export default function App() {
     const strangerFeatures = {
       key_count: 32,
       dwell_mean: 230,
+      dwell_letter_mean: 220,
+      dwell_space_mean: 340,
       dwell_std: 75,
       flight_mean: 390,
+      flight_motor_mean: 310,
       flight_std: 140,
+      pause_rate: 0.28,
       rhythm_cv: 0.62,
       wpm: 22,
       backspace_rate: 0.28,
@@ -178,33 +185,58 @@ export default function App() {
 
   // Quick Voice Verification from Continuous Terminal
   const handleQuickVoiceVerify = async () => {
-    showToast('🎙️ Microphone active! Speak now: "My voice is my password, verify my clearance"', 'info');
+    showToast('🎙️ Microphone active! Speak clearly: "My voice is my password, verify my security clearance"', 'info');
     try {
-      await voiceRecorder.startListening();
+      setQuickVoiceState({
+        isRecording: true,
+        countdown: 3,
+        level: 0,
+        isVerified: null,
+        message: 'Listening... speak clearly into microphone'
+      });
+
+      let secondsLeft = 3;
+      const countdownInterval = setInterval(() => {
+        secondsLeft -= 1;
+        setQuickVoiceState((prev) => (prev && prev.isRecording ? { ...prev, countdown: Math.max(0, secondsLeft) } : prev));
+        if (secondsLeft <= 0) clearInterval(countdownInterval);
+      }, 1000);
+
+      await voiceRecorder.startListening((frame) => {
+        setQuickVoiceState((prev) => (prev && prev.isRecording ? { ...prev, level: frame.level } : prev));
+      });
+
       setTimeout(async () => {
+        clearInterval(countdownInterval);
         const acoustic = voiceRecorder.stopListening();
         setSimulatedVoice(acoustic);
 
-        const basePitch = activeProfile?.voice_baseline?.pitch_mean || 210;
+        const basePitch = activeProfile?.voice_baseline?.pitch_mean || 195;
         const pitchDelta = Math.abs(acoustic.pitch_mean - basePitch);
-        const isVer = pitchDelta < 40;
+        const isVer = pitchDelta <= 35;
 
         setQuickVoiceState({
+          isRecording: false,
+          countdown: 0,
+          observedPitch: acoustic.pitch_mean,
+          baselinePitch: basePitch,
+          observedCentroid: acoustic.centroid_mean,
           isVerified: isVer,
           message: isVer
-            ? `Observed pitch ${acoustic.pitch_mean}Hz matches ${activeProfile?.name || 'your'} voice print!`
-            : `Observed pitch ${acoustic.pitch_mean}Hz deviates from ${activeProfile?.name || 'your'} baseline (${basePitch}Hz)!`
+            ? `Observed pitch ${acoustic.pitch_mean} Hz matches ${activeProfile?.name || 'enrolled'} voiceprint (delta: ${pitchDelta} Hz)`
+            : `Observed pitch ${acoustic.pitch_mean} Hz deviates from ${activeProfile?.name || 'enrolled'} baseline (${basePitch} Hz, delta: ${pitchDelta} Hz)`
         });
 
         showToast(
-          isVer ? `✅ Voice Verified: Matches ${activeProfile?.name || 'You'}!` : '🚨 Voice Mismatch: Someone else is speaking!',
-          isVer ? 'success' : 'error'
+          isVer ? `✅ Voiceprint Confirmed: Matches ${activeProfile?.name || 'You'}!` : `🚨 Voice Mismatch (${pitchDelta} Hz delta from baseline)`,
+          isVer ? 'success' : 'warn'
         );
 
-        triggerEvaluation(null, selectedProfileId);
+        triggerEvaluation(null, selectedProfileId, acoustic);
       }, 3500);
     } catch (e) {
-      showToast('Voice capture error: ' + e.message, 'error');
+      showToast('Microphone error: ' + e.message, 'error');
+      setQuickVoiceState(null);
     }
   };
 
@@ -213,16 +245,20 @@ export default function App() {
     try {
       const res = await calibrateProfile({
         profile_id: selectedProfileId,
-        keystrokes: collector.getFeatures() || activeProfile.keystroke_baseline,
+        keystrokes: collector.getFeatures() || null,
         voice: voiceProfile
       });
       setActiveProfile(res.profile);
+      setSimulatedVoice(voiceProfile);
       setQuickVoiceState({
+        isRecording: false,
+        countdown: 0,
         isVerified: true,
-        message: `Your voice (${voiceProfile.pitch_mean}Hz pitch) has been saved as your enrolled baseline.`
+        observedPitch: voiceProfile.pitch_mean,
+        message: `Your voice (${voiceProfile.pitch_mean} Hz pitch, ${voiceProfile.centroid_mean} Hz timbre) has been registered as your enrolled baseline.`
       });
-      showToast(`🎯 Voice baseline saved! Pitch ${voiceProfile.pitch_mean}Hz is now registered as your official voice.`, 'success');
-      triggerEvaluation(null, selectedProfileId);
+      showToast(`🎯 Voice baseline saved! Pitch ${voiceProfile.pitch_mean} Hz is now locked in as your official identity.`, 'success');
+      triggerEvaluation(null, selectedProfileId, voiceProfile);
     } catch (e) {
       showToast('Failed to save voice baseline: ' + e.message, 'error');
     }
@@ -390,6 +426,7 @@ export default function App() {
             onQuickSimulateStranger={handleQuickSimulateStranger}
             onQuickVoiceVerify={handleQuickVoiceVerify}
             quickVoiceState={quickVoiceState}
+            onSaveVoiceBaseline={handleSaveVoiceBaseline}
           />
         )}
 

@@ -11,7 +11,10 @@ import {
   Mic,
   AlertOctagon,
   KeyRound,
-  Volume2
+  Volume2,
+  CheckCircle2,
+  XCircle,
+  Activity
 } from 'lucide-react';
 
 export default function ContinuousTerminal({
@@ -25,7 +28,8 @@ export default function ContinuousTerminal({
   onAutoCalibrate,
   onQuickSimulateStranger,
   onQuickVoiceVerify,
-  quickVoiceState
+  quickVoiceState,
+  onSaveVoiceBaseline
 }) {
   const keystrokeCanvasRef = useRef(null);
   const timelineCanvasRef = useRef(null);
@@ -70,8 +74,8 @@ export default function ContinuousTerminal({
 
       // Subtle, calm colors
       let color = '#10b981'; // Calm emerald
-      if (p.dwell > 170) color = '#f59e0b';
-      if (p.dwell > 280) color = '#f43f5e';
+      if (p.dwell > 160) color = '#f59e0b'; // Amber
+      if (p.dwell > 280) color = '#f43f5e'; // Crimson
 
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha;
@@ -80,7 +84,7 @@ export default function ContinuousTerminal({
       ctx.fillStyle = '#94a3b8';
       ctx.font = '10px Fira Code, monospace';
       ctx.textAlign = 'center';
-      const label = p.key.length === 1 ? p.key : p.key.substring(0, 3);
+      const label = p.key === ' ' ? '␣' : p.key.length === 1 ? p.key : p.key.substring(0, 3);
       ctx.fillText(label, x, height - 6);
     });
 
@@ -129,8 +133,8 @@ export default function ContinuousTerminal({
 
     const lastScore = points[points.length - 1];
     let strokeColor = '#10b981';
-    if (lastScore >= 45) strokeColor = '#f59e0b';
-    if (lastScore >= 70) strokeColor = '#f43f5e';
+    if (lastScore >= 35) strokeColor = '#f59e0b';
+    if (lastScore >= 60) strokeColor = '#f43f5e';
 
     ctx.strokeStyle = strokeColor;
     ctx.stroke();
@@ -149,9 +153,9 @@ export default function ContinuousTerminal({
 
   // Human Readable Identity Verdict
   const isAwaiting = collector.keyCount < 5;
-  const isMe = !isAwaiting && riskScore < 45;
-  const isDrift = !isAwaiting && riskScore >= 45 && riskScore < 70;
-  const isIntruder = !isAwaiting && riskScore >= 70;
+  const isMe = !isAwaiting && riskScore < 35;
+  const isDrift = !isAwaiting && riskScore >= 35 && riskScore < 60;
+  const isIntruder = !isAwaiting && riskScore >= 60;
 
   const samplePrompt =
     'Security credentials must remain strictly protected against lateral movement and unauthorized impersonation.';
@@ -225,7 +229,7 @@ export default function ContinuousTerminal({
                 ) : isDrift ? (
                   <span style={{ color: 'var(--accent-warning)' }}>Cadence Variation Detected</span>
                 ) : (
-                  <span style={{ color: 'var(--text-primary)' }}>Type 5+ characters to evaluate identity</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Type naturally to evaluate identity</span>
                 )}
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
@@ -236,7 +240,7 @@ export default function ContinuousTerminal({
                 ) : isDrift ? (
                   <>Typing speed has minor drift. Possible fatigue or cold hands.</>
                 ) : (
-                  <>Type naturally in the console below. The neural timing model analyzes hold and transition latencies.</>
+                  <>Type 5+ words naturally in the terminal. The model analyzes sub-millisecond letter dwells and motor transitions.</>
                 )}
               </p>
             </div>
@@ -305,29 +309,122 @@ export default function ContinuousTerminal({
           </div>
         </div>
 
-        {/* Quick Voice Notification Bar */}
+        {/* Quick Voice Verification Active Box */}
         {quickVoiceState && (
           <div
             style={{
               marginTop: '1rem',
-              padding: '0.75rem 1rem',
+              padding: '0.9rem 1.1rem',
               borderRadius: 'var(--radius-sm)',
-              background: quickVoiceState.isVerified ? 'var(--accent-success-subtle)' : 'var(--accent-danger-subtle)',
-              border: `1px solid ${quickVoiceState.isVerified ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
+              background: quickVoiceState.isRecording
+                ? 'rgba(99, 102, 241, 0.08)'
+                : quickVoiceState.isVerified
+                ? 'var(--accent-success-subtle)'
+                : 'var(--accent-danger-subtle)',
+              border: `1px solid ${
+                quickVoiceState.isRecording
+                  ? 'rgba(99, 102, 241, 0.3)'
+                  : quickVoiceState.isVerified
+                  ? 'rgba(16, 185, 129, 0.3)'
+                  : 'rgba(244, 63, 94, 0.3)'
+              }`,
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem'
+              flexDirection: 'column',
+              gap: '0.6rem'
             }}
           >
-            <Volume2 size={18} color={quickVoiceState.isVerified ? '#10b981' : '#f43f5e'} />
-            <div>
-              <strong style={{ fontSize: '0.82rem', color: quickVoiceState.isVerified ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
-                {quickVoiceState.isVerified ? 'Voice Confirmed: Matches Enrolled Voiceprint' : 'Voice Discrepancy: Mismatched Speaker'}
-              </strong>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                {quickVoiceState.message}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <Volume2
+                  size={18}
+                  color={
+                    quickVoiceState.isRecording
+                      ? '#6366f1'
+                      : quickVoiceState.isVerified
+                      ? '#10b981'
+                      : '#f43f5e'
+                  }
+                />
+                <strong
+                  style={{
+                    fontSize: '0.85rem',
+                    color: quickVoiceState.isRecording
+                      ? '#a5b4fc'
+                      : quickVoiceState.isVerified
+                      ? 'var(--accent-success)'
+                      : 'var(--accent-danger)'
+                  }}
+                >
+                  {quickVoiceState.isRecording
+                    ? `Listening to Microphone... ${quickVoiceState.countdown}s remaining`
+                    : quickVoiceState.isVerified
+                    ? 'Voice Confirmed: Speaker Matches Enrolled Profile'
+                    : 'Voice Discrepancy Flagged: Speaker Mismatch'}
+                </strong>
               </div>
+
+              {quickVoiceState.isRecording && (
+                <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: '#818cf8' }}>
+                  RECORDING 3.5s
+                </span>
+              )}
             </div>
+
+            {/* Live VU Meter during recording */}
+            {quickVoiceState.isRecording && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                  MIC LEVEL
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: '6px',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    borderRadius: '3px',
+                    overflow: 'hidden'
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: `${Math.round((quickVoiceState.level || 0) * 100)}%`,
+                      background: '#10b981',
+                      transition: 'width 0.06s ease'
+                    }}
+                  />
+                </div>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                  Speak: "My voice is my password"
+                </span>
+              </div>
+            )}
+
+            {/* Verification result summary */}
+            {!quickVoiceState.isRecording && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  {quickVoiceState.message}
+                </div>
+
+                {quickVoiceState.observedPitch && onSaveVoiceBaseline && (
+                  <button
+                    className="btn btn-success"
+                    style={{ fontSize: '0.74rem', padding: '0.35rem 0.75rem' }}
+                    onClick={() =>
+                      onSaveVoiceBaseline({
+                        pitch_mean: quickVoiceState.observedPitch,
+                        pitch_std: 20,
+                        centroid_mean: quickVoiceState.observedCentroid || 1720,
+                        formant_ratio: 1.22
+                      })
+                    }
+                  >
+                    <Target size={13} /> Save {quickVoiceState.observedPitch} Hz as My Voice Baseline
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -346,6 +443,35 @@ export default function ContinuousTerminal({
                 Continuous Keystroke Capture Console
               </div>
               <span className="card-tag">1,000 Hz SAMPLING</span>
+            </div>
+
+            {/* Live Cadence Telemetry Strip */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '0.6rem',
+                marginBottom: '0.85rem',
+                flexWrap: 'wrap',
+                background: 'rgba(0, 0, 0, 0.25)',
+                padding: '0.5rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: '0.74rem',
+                fontFamily: 'var(--font-mono)'
+              }}
+            >
+              <div style={{ color: 'var(--text-muted)' }}>
+                Letter Hold: <strong style={{ color: '#f8fafc' }}>{collector.cadence.dwellLetter ? `${collector.cadence.dwellLetter}ms` : '--'}</strong>
+              </div>
+              <div style={{ color: 'var(--text-muted)' }}>
+                Space Hold: <strong style={{ color: '#f8fafc' }}>{collector.cadence.dwellSpace ? `${collector.cadence.dwellSpace}ms` : '--'}</strong>
+              </div>
+              <div style={{ color: 'var(--text-muted)' }}>
+                Motor Flight: <strong style={{ color: '#f8fafc' }}>{collector.cadence.flightMotor ? `${collector.cadence.flightMotor}ms` : '--'}</strong>
+              </div>
+              <div style={{ color: 'var(--text-muted)' }}>
+                Velocity: <strong style={{ color: '#f8fafc' }}>{collector.cadence.wpm ? `${collector.cadence.wpm} WPM` : '--'}</strong>
+              </div>
             </div>
 
             <div className="terminal-window">
@@ -444,7 +570,7 @@ export default function ContinuousTerminal({
             >
               <span>Height: Key Depress Duration</span>
               <span>Spacing: Release-to-Press Latency</span>
-              <span>Green: Regular | Amber: Hesitant | Red: Outlier</span>
+              <span>Green: Regular | Amber: Space/Hesitation | Red: Outlier</span>
             </div>
           </div>
         </div>
@@ -462,21 +588,31 @@ export default function ContinuousTerminal({
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className="metric-row">
-                <span className="metric-label">Key Hold Duration (Dwell):</span>
+                <span className="metric-label">Letter Hold (Dwell):</span>
                 <span className="metric-value">
-                  {features ? `${features.dwell_mean} ms` : '-- ms'}{' '}
+                  {features ? `${features.dwell_letter_mean || features.dwell_mean} ms` : '-- ms'}{' '}
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    (Baseline: {activeProfile?.keystroke_baseline?.dwell_mean || 110} ms)
+                    (Baseline: {activeProfile?.keystroke_baseline?.dwell_letter_mean || 96} ms)
                   </span>
                 </span>
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Transition Latency (Flight):</span>
+                <span className="metric-label">Spacebar Hold:</span>
                 <span className="metric-value">
-                  {features ? `${features.flight_mean} ms` : '-- ms'}{' '}
+                  {features ? `${features.dwell_space_mean || '--'} ms` : '-- ms'}{' '}
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    (Baseline: {activeProfile?.keystroke_baseline?.flight_mean || 145} ms)
+                    (Baseline: {activeProfile?.keystroke_baseline?.dwell_space_mean || 185} ms)
+                  </span>
+                </span>
+              </div>
+
+              <div className="metric-row">
+                <span className="metric-label">Motor Flight Latency:</span>
+                <span className="metric-value">
+                  {features ? `${features.flight_motor_mean || features.flight_mean} ms` : '-- ms'}{' '}
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    (Baseline: {activeProfile?.keystroke_baseline?.flight_motor_mean || 118} ms)
                   </span>
                 </span>
               </div>
@@ -484,7 +620,7 @@ export default function ContinuousTerminal({
               <div className="metric-row">
                 <span className="metric-label">Rhythm Stability:</span>
                 <span className="metric-value">
-                  {features ? (features.rhythm_cv < 0.4 ? 'Normal Consistency' : 'Erratic Pacing') : '--'}
+                  {features ? (features.rhythm_cv < 0.38 ? 'Consistent Habit' : 'Irregular Pacing') : '--'}
                 </span>
               </div>
 
@@ -499,9 +635,9 @@ export default function ContinuousTerminal({
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Correction Rate:</span>
+                <span className="metric-label">Cognitive Pauses (&gt;650ms):</span>
                 <span className="metric-value">
-                  {features ? `${Math.round(features.backspace_rate * 100)}%` : '--%'}
+                  {features ? `${Math.round((features.pause_rate || 0) * 100)}%` : '--%'}
                 </span>
               </div>
             </div>

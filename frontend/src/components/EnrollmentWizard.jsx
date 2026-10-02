@@ -56,7 +56,10 @@ export default function EnrollmentWizard({ onProfileEnrolled, showToast }) {
     }
 
     const avgDwell = samples.reduce((a, s) => a + s.dwell_mean, 0) / samples.length;
+    const avgLetterDwell = samples.reduce((a, s) => a + (s.dwell_letter_mean || s.dwell_mean), 0) / samples.length;
+    const avgSpaceDwell = samples.reduce((a, s) => a + (s.dwell_space_mean || s.dwell_mean * 1.65), 0) / samples.length;
     const avgFlight = samples.reduce((a, s) => a + s.flight_mean, 0) / samples.length;
+    const avgMotorFlight = samples.reduce((a, s) => a + (s.flight_motor_mean || s.flight_mean), 0) / samples.length;
     const avgCV = samples.reduce((a, s) => a + s.rhythm_cv, 0) / samples.length;
     const avgWpm = samples.reduce((a, s) => a + s.wpm, 0) / samples.length;
 
@@ -70,22 +73,26 @@ export default function EnrollmentWizard({ onProfileEnrolled, showToast }) {
       keystroke_baseline: {
         key_count: 150,
         dwell_mean: Math.round(avgDwell),
-        dwell_std: 18.0,
+        dwell_letter_mean: Math.round(avgLetterDwell),
+        dwell_space_mean: Math.round(avgSpaceDwell),
+        dwell_std: 22.0,
         flight_mean: Math.round(avgFlight),
-        flight_std: 30.0,
+        flight_motor_mean: Math.round(avgMotorFlight),
+        flight_std: 35.0,
         rhythm_cv: parseFloat(avgCV.toFixed(3)),
         wpm: Math.round(avgWpm),
         backspace_rate: 0.04,
         digraph_stats: {
-          th: { mean: Math.round(avgFlight * 0.9), count: 10 },
-          he: { mean: Math.round(avgFlight * 0.85), count: 10 },
-          in: { mean: Math.round(avgFlight * 0.95), count: 10 }
+          th: { mean: Math.round(avgMotorFlight * 0.9), count: 10 },
+          he: { mean: Math.round(avgMotorFlight * 0.85), count: 10 },
+          in: { mean: Math.round(avgMotorFlight * 0.95), count: 10 }
         }
       },
       voice_baseline: voiceBaseline || {
-        pitch_mean: 180.0,
-        pitch_std: 18.0,
-        centroid_mean: 1650.0,
+        pitch_mean: 195.0,
+        pitch_std: 22.0,
+        centroid_mean: 1720.0,
+        formant_ratio: 1.22,
         rms_mean: 0.2,
         zcr_mean: 0.08,
         sample_count: 30

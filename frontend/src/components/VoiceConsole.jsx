@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Mic, Volume2, ShieldCheck, AlertTriangle, Target } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Mic, Volume2, ShieldCheck, AlertTriangle, Target, CheckCircle2, XCircle } from 'lucide-react';
 
 export default function VoiceConsole({
   recorder,
@@ -13,8 +13,15 @@ export default function VoiceConsole({
   const waveformCanvasRef = useRef(null);
   const spectrumCanvasRef = useRef(null);
   const [recordedAudioProfile, setRecordedAudioProfile] = useState(null);
+  const [countdown, setCountdown] = useState(0);
 
   const ownerName = activeProfile?.name || 'Ananya Sridhar';
+  const vBase = activeProfile?.voice_baseline || {
+    pitch_mean: 195,
+    pitch_std: 25,
+    centroid_mean: 1720,
+    formant_ratio: 1.22
+  };
 
   // Real-time canvas renderers (calm slate & emerald colors)
   const handleAudioFrame = ({ timeData, freqData }) => {
@@ -70,19 +77,38 @@ export default function VoiceConsole({
     }
   };
 
+  // Countdown handler for 3.5s auto capture
+  useEffect(() => {
+    let timer;
+    if (recorder.isRecording && countdown > 0) {
+      timer = setTimeout(() => {
+        setCountdown((c) => c - 1);
+      }, 1000);
+    } else if (recorder.isRecording && countdown === 0) {
+      // Auto-stop after 3.5s
+      const profile = recorder.stopListening();
+      setRecordedAudioProfile(profile);
+      if (onSaveVoiceBaseline) {
+        onSaveVoiceBaseline(profile);
+      }
+    }
+    return () => clearTimeout(timer);
+  }, [recorder.isRecording, countdown, recorder, onSaveVoiceBaseline]);
+
   const toggleRecording = async () => {
     if (!recorder.isRecording) {
+      setCountdown(3);
       await recorder.startListening(handleAudioFrame);
     } else {
       const profile = recorder.stopListening();
       setRecordedAudioProfile(profile);
+      setCountdown(0);
     }
   };
 
-  const vBase = activeProfile?.voice_baseline || { pitch_mean: 210, centroid_mean: 1750 };
-  const percent = voiceAnomaly !== null ? voiceAnomaly : null;
-  const isSpoof = percent !== null && percent >= 50;
-  const isMatch = percent !== null && percent < 50;
+  const percent = voiceAnomaly !== null && voiceAnomaly !== undefined ? voiceAnomaly : null;
+  const isSpoof = percent !== null && percent >= 45;
+  const isMatch = percent !== null && percent < 45;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -133,20 +159,20 @@ export default function VoiceConsole({
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 700, marginTop: '0.15rem' }}>
                 {isMatch ? (
-                  <span style={{ color: 'var(--accent-success)' }}>Voice Confirmed: {ownerName}</span>
+                  <span style={{ color: 'var(--accent-success)' }}>Voiceprint Confirmed: {ownerName}</span>
                 ) : isSpoof ? (
-                  <span style={{ color: 'var(--accent-danger)' }}>Voice Mismatch Detected</span>
+                  <span style={{ color: 'var(--accent-danger)' }}>Vocal Tract Discrepancy Flagged</span>
                 ) : (
                   <span style={{ color: 'var(--text-primary)' }}>Click microphone below and speak passphrase</span>
                 )}
               </div>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                 {isMatch ? (
-                  <>Vocal tract resonances match {ownerName}'s enrolled profile (<strong>{100 - percent}% confidence</strong>).</>
+                  <>Vocal cords fundamental pitch ($F_0$) and formant resonances match {ownerName}'s enrolled profile (<strong>{100 - percent}% confidence</strong>).</>
                 ) : isSpoof ? (
-                  <>Observed pitch deviates from {ownerName}'s enrolled baseline.</>
+                  <>Observed pitch deviates ({percent}% anomaly) from {ownerName}'s enrolled voiceprint ({vBase.pitch_mean} Hz).</>
                 ) : (
-                  <>The system measures fundamental pitch ($F_0$) and timbre using the browser's Web Audio API.</>
+                  <>The DSP engine extracts pitch via Normalized Cross-Correlation (NCCF) and formant resonance ratios.</>
                 )}
               </p>
             </div>
@@ -154,7 +180,7 @@ export default function VoiceConsole({
 
           <div style={{ textAlign: 'right', minWidth: '120px' }}>
             <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              VOICE MATCH
+              MATCH CONFIDENCE
             </div>
             <div
               style={{
@@ -186,7 +212,8 @@ export default function VoiceConsole({
             }}
           >
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Captured Pitch: <strong>{recordedAudioProfile.pitch_mean} Hz</strong> | Timbre:{' '}
+              Captured Pitch: <strong>{recordedAudioProfile.pitch_mean} Hz</strong> | Formants:{' '}
+              <strong>{recordedAudioProfile.formant_ratio || 1.22}</strong> | Timbre:{' '}
               <strong>{recordedAudioProfile.centroid_mean} Hz</strong>
             </div>
             <button
@@ -210,7 +237,7 @@ export default function VoiceConsole({
               <Mic size={16} /> Audio Capture
             </div>
             <span className="card-tag">
-              {recorder.mode === 'live_mic' ? 'MICROPHONE' : 'DSP READY'}
+              {recorder.mode === 'live_mic' ? 'MICROPHONE ACTIVE' : 'DSP READY'}
             </span>
           </div>
 
@@ -242,20 +269,40 @@ export default function VoiceConsole({
             </div>
             <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
               {recorder.isRecording ? (
-                <span style={{ color: 'var(--accent-danger)' }}>Recording... Speak now</span>
+                <span style={{ color: 'var(--accent-danger)' }}>
+                  Recording... {countdown > 0 ? `${countdown}s left` : 'Analyzing...'}
+                </span>
               ) : (
                 <span style={{ color: 'var(--text-primary)' }}>Click to start microphone</span>
               )}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Speak for 3 to 4 seconds, then click again to evaluate.
+              Speaks naturally for 3 to 4 seconds, then evaluates against {ownerName}'s baseline.
+            </div>
+
+            {/* Live VU Meter */}
+            <div style={{ width: '100%', maxWidth: '320px', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                <span>MIC LEVEL</span>
+                <span>{recorder.metrics.isSpeaking ? 'VOICE ACTIVE' : 'QUIET'}</span>
+              </div>
+              <div style={{ width: '100%', height: '7px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${Math.round((recorder.metrics.level || 0) * 100)}%`,
+                    background: recorder.metrics.level > 0.7 ? '#f59e0b' : '#10b981',
+                    transition: 'width 0.06s ease'
+                  }}
+                />
+              </div>
             </div>
           </div>
 
           {/* Waveform Canvas */}
           <div style={{ marginBottom: '0.85rem' }}>
             <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              TIME-DOMAIN WAVEFORM
+              TIME-DOMAIN WAVEFORM (VAD FILTERED)
             </div>
             <div className="canvas-wrapper">
               <canvas ref={waveformCanvasRef} width={600} height={90} />
@@ -265,7 +312,7 @@ export default function VoiceConsole({
           {/* Spectrum Canvas */}
           <div>
             <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              FREQUENCY SPECTRUM
+              FREQUENCY SPECTRUM (300Hz - 3,000Hz VOCAL TRACT)
             </div>
             <div className="canvas-wrapper">
               <canvas ref={spectrumCanvasRef} width={600} height={90} />
@@ -294,6 +341,14 @@ export default function VoiceConsole({
               <span className="metric-label">Baseline Pitch Target:</span>
               <span className="metric-value">
                 {vBase.pitch_mean} Hz (±{vBase.pitch_std || 25} Hz)
+              </span>
+            </div>
+
+            <div className="metric-row">
+              <span className="metric-label">Formant Energy Ratio (F1/F2):</span>
+              <span className="metric-value">
+                {recorder.metrics.formantRatio ? `${recorder.metrics.formantRatio}` : '--'}{' '}
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Target: {vBase.formant_ratio || 1.22})</span>
               </span>
             </div>
 

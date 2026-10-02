@@ -6,3 +6,6 @@ __pycache__/
 .env
 .idea/
 .vscode/
+.venv/
+venv/
+*.pyc

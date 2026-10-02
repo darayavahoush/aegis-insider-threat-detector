@@ -640,6 +640,40 @@ export default function ContinuousTerminal({
                   {features ? `${Math.round((features.pause_rate || 0) * 100)}%` : '--%'}
                 </span>
               </div>
+
+              {/* TypeNet Deep Learning & Anomaly Diagnostics */}
+              {assessment?.details?.keystroke?.typenet_cosine_similarity !== undefined && (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'rgba(99, 102, 241, 0.08)',
+                    border: '1px solid rgba(99, 102, 241, 0.25)',
+                    fontSize: '0.73rem',
+                    fontFamily: 'var(--font-mono)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a5b4fc', marginBottom: '0.25rem' }}>
+                    <span>TypeNet Embedding (128-d):</span>
+                    <strong>{Math.round(assessment.details.keystroke.typenet_cosine_similarity * 100)}% Match</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                    <span>Ledoit-Wolf Mahalanobis:</span>
+                    <span>D_M = {assessment.details.keystroke.mahalanobis_distance}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    <span>One-Class SVM Boundary:</span>
+                    <span style={{ color: assessment.details.keystroke.oc_svm_inlier ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                      {assessment.details.keystroke.oc_svm_inlier ? 'INLIER' : 'ANOMALY'}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    <span>Timing Jitter Entropy:</span>
+                    <span>{assessment.details.keystroke.shannon_entropy_bits} bits</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div

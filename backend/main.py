@@ -6,6 +6,7 @@ Built with FastAPI & Uvicorn.
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Dict, Any
+from datetime import datetime
 
 from .models import (
     TelemetryEvaluationRequest,
@@ -23,8 +24,10 @@ from .database import (
     clear_audit_logs
 )
 from .engines.keystroke_engine import PythonKeystrokeEngine
+from .engines.ml_keystroke_engine import MLKeystrokeEngine
 from .engines.voice_engine import PythonVoiceEngine
 from .engines.threat_engine import PythonThreatEngine
+from .engines.langgraph_threat_agent import zero_trust_agent
 
 app = FastAPI(
     title="AEGIS Insider Threat Detection Engine",
@@ -112,7 +115,11 @@ def evaluate_telemetry(payload: TelemetryEvaluationRequest):
     ksd_score = None
     ksd_details = {}
     if payload.keystrokes and payload.keystrokes.key_count >= 3:
-        ksd_score, ksd_details = PythonKeystrokeEngine.evaluate(payload.keystrokes, base_k)
+        try:
+            ksd_score, ksd_details = MLKeystrokeEngine.evaluate(payload.keystrokes, base_k)
+        except Exception as e:
+            ksd_score, ksd_details = PythonKeystrokeEngine.evaluate(payload.keystrokes, base_k)
+            ksd_details["fallback_reason"] = str(e)
 
     voice_score = None
     voice_details = {}
@@ -151,6 +158,41 @@ def evaluate_telemetry(payload: TelemetryEvaluationRequest):
     )
 
     return assessment
+
+@app.post("/api/evaluate/graph")
+def evaluate_telemetry_graph(payload: TelemetryEvaluationRequest):
+    """
+    Executes telemetry evaluation through the LangGraph StateGraph agent.
+    Returns state graph decision, threat synthesis, and node execution trail.
+    """
+    profile = get_profile(payload.profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Target baseline profile '{payload.profile_id}' not found")
+
+    initial_state = {
+        "session_id": f"sess_{payload.profile_id}_{int(datetime.utcnow().timestamp())}",
+        "profile_id": payload.profile_id,
+        "user_name": profile["name"],
+        "keystrokes": payload.keystrokes.model_dump() if payload.keystrokes else None,
+        "voice": payload.voice.model_dump() if payload.voice else None,
+        "mouse_anomaly": payload.mouse_context.anomaly_score if payload.mouse_context else 0.05,
+        "base_keystrokes": profile["keystroke_baseline"].model_dump(),
+        "base_voice": profile["voice_baseline"].model_dump() if profile.get("voice_baseline") else None,
+        "is_synthetic_bot": False,
+        "keystroke_score": None,
+        "keystroke_details": {},
+        "voice_score": None,
+        "voice_details": {},
+        "fused_risk_score": 0,
+        "threat_level": "TRUSTED",
+        "recommendation": "",
+        "mitre_tags": [],
+        "enforcement_action": "ALLOW",
+        "execution_trail": []
+    }
+
+    result = zero_trust_agent.invoke(initial_state)
+    return result
 
 @app.get("/api/logs", response_model=List[AuditEvent])
 def get_audit_logs():

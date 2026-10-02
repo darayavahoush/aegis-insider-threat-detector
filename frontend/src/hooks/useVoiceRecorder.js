@@ -1,21 +1,22 @@
 import { useState, useRef, useCallback } from 'react';
 
 /**
- * Enterprise Voice Biometrics & Acoustic DSP Hook
- * - Robust YIN pitch estimator with sub-0.1 Hz accuracy
- * - Adaptive Voice Activity Detection (VAD) sensitive to standard laptop microphones
- * - Cumulative Mean Normalized Difference Function with parabolic interpolation
- * - Formant Energy Ratio (F1/F2: 300-1000Hz vs 1000-3000Hz) & Timbre Centroid
- * - Responsive logarithmic VU-meter level stream
+ * Enterprise Dual-Path Acoustic DSP & Voice Biometrics Hook
+ * - Multi-Method Consensus Pitch Estimation: YIN + Normalized Autocorrelation
+ * - Native MediaRecorder capture with instant audio snippet playback
+ * - Dynamic adaptive noise-floor VAD
+ * - Formant Energy Ratio (F1/F2) and Spectral Timbre extraction
+ * - High-speed logarithmic LED VU meter
  */
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState('idle'); // 'live_mic' or 'synthetic'
   const [permissionError, setPermissionError] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
   const [metrics, setMetrics] = useState({
     pitch: 0,
     centroid: 0,
-    formantRatio: 1.2,
+    formantRatio: 1.22,
     rms: 0,
     zcr: 0,
     level: 0, // 0.0 to 1.0 logarithmic VU level
@@ -27,6 +28,8 @@ export function useVoiceRecorder() {
   const mediaStreamRef = useRef(null);
   const sourceNodeRef = useRef(null);
   const animFrameRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
 
   const pitchBuffer = useRef([]);
   const pitchRecentWindow = useRef([]);
@@ -35,6 +38,8 @@ export function useVoiceRecorder() {
   const rolloffBuffer = useRef([]);
   const rmsBuffer = useRef([]);
   const zcrBuffer = useRef([]);
+  const noiseFloorRef = useRef(0.002);
+  const startTimeRef = useRef(null);
 
   const onFrameCallbackRef = useRef(null);
 
@@ -47,7 +52,10 @@ export function useVoiceRecorder() {
     rolloffBuffer.current = [];
     rmsBuffer.current = [];
     zcrBuffer.current = [];
+    recordedChunksRef.current = [];
     setPermissionError(null);
+    setAudioUrl(null);
+    startTimeRef.current = performance.now();
 
     try {
       const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
@@ -59,7 +67,7 @@ export function useVoiceRecorder() {
         await audioCtxRef.current.resume();
       }
 
-      // Universal audio constraint without restrictive options
+      // Universal audio constraint
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
@@ -69,13 +77,48 @@ export function useVoiceRecorder() {
       analyserRef.current.smoothingTimeConstant = 0.5;
 
       sourceNodeRef.current.connect(analyserRef.current);
+
+      // Setup MediaRecorder for tactile audio playback
+      try {
+        if (typeof window.MediaRecorder !== 'undefined') {
+          let mime = '';
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) mime = 'audio/webm;codecs=opus';
+          else if (MediaRecorder.isTypeSupported('audio/webm')) mime = 'audio/webm';
+          else if (MediaRecorder.isTypeSupported('audio/mp4')) mime = 'audio/mp4';
+
+          const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+          mediaRecorderRef.current = mr;
+
+          mr.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              recordedChunksRef.current.push(e.data);
+            }
+          };
+
+          mr.onstop = () => {
+            if (recordedChunksRef.current.length > 0) {
+              const blob = new Blob(recordedChunksRef.current, { type: mr.mimeType || 'audio/webm' });
+              const url = URL.createObjectURL(blob);
+              setAudioUrl(url);
+            }
+          };
+
+          mr.start(100);
+        }
+      } catch (mrErr) {
+        console.warn('MediaRecorder init skipped:', mrErr);
+      }
+
       setIsRecording(true);
       setMode('live_mic');
 
       const sampleRate = audioCtxRef.current.sampleRate || 48000;
+      let frameCounter = 0;
 
       const processAudio = () => {
         if (!analyserRef.current) return;
+        frameCounter++;
+
         const bufferLength = analyserRef.current.fftSize;
         const timeData = new Float32Array(bufferLength);
         const freqData = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -92,12 +135,18 @@ export function useVoiceRecorder() {
         const rms = calculateRMS(timeData);
         const zcr = calculateZCR(timeData);
 
+        // Measure ambient room noise in first 10 frames
+        if (frameCounter <= 10 && rms > 0.0001) {
+          noiseFloorRef.current = Math.min(noiseFloorRef.current, rms);
+        }
+
+        // Adaptive VAD gate: speech is active if above 0.004 or 1.6x ambient floor
+        const vadThreshold = Math.max(0.004, noiseFloorRef.current * 1.6);
+        const isSpeaking = rms >= vadThreshold;
+
         // Logarithmic VU meter level: -45 dB (quiet) to -10 dB (loud)
         const db = 20 * Math.log10(rms + 1e-5);
         const level = Math.max(0, Math.min(1.0, (db + 45) / 35));
-
-        // Sensitive Voice Activity Detection threshold for laptop mics
-        const isSpeaking = rms >= 0.005;
 
         let smoothedPitch = 0;
         const centroid = calculateSpectralCentroid(freqData, sampleRate);
@@ -105,9 +154,14 @@ export function useVoiceRecorder() {
         const rolloff = calculateSpectralRolloff(freqData, sampleRate);
 
         if (isSpeaking) {
-          const rawPitch = detectPitchYIN(timeData, sampleRate);
-          if (rawPitch >= 65 && rawPitch <= 450) {
-            pitchRecentWindow.current.push(rawPitch);
+          // Multi-Method Consensus Pitch Tracking (YIN + Autocorrelation fallback)
+          let detected = detectPitchYIN(timeData, sampleRate);
+          if (detected < 65 || detected > 450) {
+            detected = detectPitchAutocorr(timeData, sampleRate);
+          }
+
+          if (detected >= 65 && detected <= 450) {
+            pitchRecentWindow.current.push(detected);
             if (pitchRecentWindow.current.length > 5) pitchRecentWindow.current.shift();
             smoothedPitch = median(pitchRecentWindow.current);
 
@@ -150,19 +204,18 @@ export function useVoiceRecorder() {
       processAudio();
       return { success: true, mode: 'live_mic' };
     } catch (err) {
-      console.warn('Microphone access unavailable or denied:', err);
+      console.warn('Microphone access unavailable, activating synthetic DSP studio:', err);
       setPermissionError(err.message || 'Microphone access denied');
       setIsRecording(true);
       setMode('synthetic');
 
-      // Realistic synthetic fallback
       const processSynthetic = () => {
         const bufferLength = 1024;
         const timeData = new Float32Array(bufferLength);
         const freqData = new Uint8Array(512);
 
         const now = performance.now() * 0.004;
-        const baseFreq = 195.0 + Math.sin(now * 1.2) * 6.0;
+        const baseFreq = 195.0 + Math.sin(now * 1.2) * 5.0;
 
         for (let i = 0; i < bufferLength; i++) {
           const t = i / 44100;
@@ -178,10 +231,10 @@ export function useVoiceRecorder() {
           freqData[i] = Math.max(0, 220 - dist * 0.25) + Math.random() * 15;
         }
 
-        const rms = 0.08;
+        const rms = 0.075;
         const zcr = 0.082;
-        const centroid = 1720 + Math.sin(now) * 35;
-        const formantRatio = 1.23 + Math.sin(now * 0.8) * 0.04;
+        const centroid = 1720 + Math.sin(now) * 30;
+        const formantRatio = 1.22 + Math.sin(now * 0.8) * 0.03;
 
         pitchBuffer.current.push(baseFreq);
         centroidBuffer.current.push(centroid);
@@ -194,9 +247,9 @@ export function useVoiceRecorder() {
           pitch: Math.round(baseFreq),
           centroid: Math.round(centroid),
           formantRatio: parseFloat(formantRatio.toFixed(2)),
-          rms: 0.08,
+          rms: 0.075,
           zcr: 0.082,
-          level: 0.65,
+          level: 0.70,
           isSpeaking: true
         });
 
@@ -206,7 +259,7 @@ export function useVoiceRecorder() {
             freqData,
             rms,
             zcr,
-            level: 0.65,
+            level: 0.70,
             pitch: baseFreq,
             centroid,
             formantRatio,
@@ -228,6 +281,15 @@ export function useVoiceRecorder() {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
     }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (e) {
+        console.warn('Error stopping MediaRecorder:', e);
+      }
+    }
+
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((t) => t.stop());
       mediaStreamRef.current = null;
@@ -250,6 +312,10 @@ export function useVoiceRecorder() {
     const rmsMean = rmsBuffer.current.length ? mean(rmsBuffer.current) : 0.08;
     const zcrMean = zcrBuffer.current.length ? mean(zcrBuffer.current) : 0.08;
 
+    const elapsedSec = startTimeRef.current
+      ? ((performance.now() - startTimeRef.current) / 1000).toFixed(1)
+      : '3.5';
+
     return {
       pitch_mean: Math.round(pitchMean),
       pitch_std: Math.round(pitchStd),
@@ -260,7 +326,8 @@ export function useVoiceRecorder() {
       rms_mean: parseFloat(rmsMean.toFixed(3)),
       zcr_mean: parseFloat(zcrMean.toFixed(3)),
       sample_count: validPitches.length || 25,
-      has_audio: validPitches.length > 0
+      has_audio: validPitches.length > 0,
+      duration_sec: elapsedSec
     };
   }, [metrics.pitch]);
 
@@ -268,6 +335,7 @@ export function useVoiceRecorder() {
     isRecording,
     mode,
     permissionError,
+    audioUrl,
     metrics,
     startListening,
     stopListening
@@ -275,19 +343,21 @@ export function useVoiceRecorder() {
 }
 
 /* =========================================================================
-   DSP Pitch Detection: YIN Algorithm
+   DSP Multi-Method Consensus Algorithms
    ========================================================================= */
 
+/**
+ * Method 1: YIN Pitch Estimator
+ */
 function detectPitchYIN(signal, sampleRate) {
-  const minFreq = 65;   // Lowest human vocal fundamental (deep male)
-  const maxFreq = 450;  // Highest human vocal fundamental (soprano / female)
+  const minFreq = 65;   // Deep vocal fundamental
+  const maxFreq = 450;  // High vocal fundamental
   const minLag = Math.floor(sampleRate / maxFreq);
   const maxLag = Math.ceil(sampleRate / minFreq);
   const windowSize = 1024;
 
   if (signal.length < windowSize + maxLag) return 0;
 
-  // Step 1: Squared Difference Function
   const diff = new Float32Array(maxLag + 1);
   for (let tau = 0; tau <= maxLag; tau++) {
     let sum = 0;
@@ -298,7 +368,6 @@ function detectPitchYIN(signal, sampleRate) {
     diff[tau] = sum;
   }
 
-  // Step 2: Cumulative Mean Normalized Difference Function (CMNDF)
   const cmndf = new Float32Array(maxLag + 1);
   cmndf[0] = 1;
   let runningSum = 0;
@@ -307,8 +376,7 @@ function detectPitchYIN(signal, sampleRate) {
     cmndf[tau] = runningSum > 0 ? (diff[tau] * tau) / runningSum : 1;
   }
 
-  // Step 3: Absolute Thresholding
-  const threshold = 0.20;
+  const threshold = 0.22;
   let bestTau = -1;
 
   for (let tau = minLag; tau <= maxLag; tau++) {
@@ -321,7 +389,6 @@ function detectPitchYIN(signal, sampleRate) {
     }
   }
 
-  // Fallback: local minimum in valid range
   if (bestTau === -1) {
     let minVal = 1.0;
     for (let tau = minLag; tau <= maxLag; tau++) {
@@ -330,10 +397,9 @@ function detectPitchYIN(signal, sampleRate) {
         bestTau = tau;
       }
     }
-    if (minVal > 0.35) return 0; // Voiceless or noise
+    if (minVal > 0.40) return 0;
   }
 
-  // Step 4: Parabolic Peak Refinement
   let refinedTau = bestTau;
   if (bestTau > 0 && bestTau < maxLag) {
     const s0 = cmndf[bestTau - 1];
@@ -347,6 +413,57 @@ function detectPitchYIN(signal, sampleRate) {
   }
 
   return sampleRate / refinedTau;
+}
+
+/**
+ * Method 2: Normalized Autocorrelation (ACF) Fallback
+ */
+function detectPitchAutocorr(signal, sampleRate) {
+  const minFreq = 65;
+  const maxFreq = 450;
+  const minLag = Math.floor(sampleRate / maxFreq);
+  const maxLag = Math.ceil(sampleRate / minFreq);
+  const windowSize = 1024;
+
+  if (signal.length < windowSize + maxLag) return 0;
+
+  let e0 = 0;
+  for (let i = 0; i < windowSize; i++) e0 += signal[i] * signal[i];
+  if (e0 < 1e-5) return 0;
+
+  let maxCorr = -1;
+  let bestLag = -1;
+  const corr = new Float32Array(maxLag + 2);
+
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let sum = 0;
+    let eLag = 0;
+    for (let i = 0; i < windowSize; i++) {
+      const s1 = signal[i];
+      const s2 = signal[i + lag];
+      sum += s1 * s2;
+      eLag += s2 * s2;
+    }
+    const denom = Math.sqrt(e0 * eLag) + 1e-6;
+    const ac = sum / denom;
+    corr[lag] = ac;
+    if (ac > maxCorr) {
+      maxCorr = ac;
+      bestLag = lag;
+    }
+  }
+
+  if (maxCorr < 0.32 || bestLag <= minLag) return 0;
+
+  // Parabolic interpolation
+  const s0 = corr[bestLag - 1];
+  const s1 = corr[bestLag];
+  const s2 = corr[bestLag + 1];
+  const denom = 2 * (s0 - 2 * s1 + s2);
+  let delta = 0;
+  if (Math.abs(denom) > 1e-6) delta = (s0 - s2) / denom;
+
+  return sampleRate / (bestLag + Math.max(-0.5, Math.min(0.5, delta)));
 }
 
 function calculateRMS(signal) {

@@ -1,68 +1,93 @@
 import React from 'react';
-import { Shield, UserCheck, CheckCircle2, AlertOctagon, HelpCircle } from 'lucide-react';
+import { Shield, User, Activity, Cpu } from 'lucide-react';
 
-export default function Header({ profiles, selectedProfileId, onSelectProfile, riskScore, statusLevel, keyCount }) {
+export default function Header({
+  profiles,
+  selectedProfileId,
+  onSelectProfile,
+  riskScore,
+  statusLevel,
+  keyCount
+}) {
   const isDanger = statusLevel === 'CRITICAL_THREAT' || statusLevel === 'SUSPICIOUS_ANOMALY';
   const isVerified = statusLevel === 'TRUSTED' && keyCount >= 5;
+  const isDrift = statusLevel === 'ELEVATED_DRIFT';
 
   return (
-    <header>
+    <header className="executive-header">
       <div className="header-container">
+        {/* Brand identity */}
         <div className="brand-wrapper">
-          <div className="brand-icon">
-            <Shield size={24} color="#00f0ff" />
+          <div className="brand-logo-container">
+            <Shield size={20} className="brand-shield-icon" />
           </div>
           <div>
-            <div className="brand-title">AEGIS // BIOMETRIC IDENTITY DEFENDER</div>
-            <div className="brand-subtitle">CONTINUOUS BEHAVIORAL INSIDER THREAT DETECTOR</div>
+            <div className="brand-title-group">
+              <span className="brand-name">AEGIS</span>
+              <span className="brand-badge">ZERO-TRUST BIOMETRICS</span>
+            </div>
+            <div className="brand-subtitle">
+              Continuous Behavioral Insider Threat Defense
+            </div>
           </div>
         </div>
 
+        {/* Central & Right Controls */}
         <div className="header-telemetry">
-          {/* Identity Selector */}
-          <div className="telemetry-pill" style={{ border: '1px solid rgba(0, 240, 255, 0.4)' }}>
-            <UserCheck size={15} color="#00f0ff" />
-            <span style={{ color: 'var(--text-muted)' }}>ENROLLED OWNER:</span>
+          {/* Active Baseline Profile */}
+          <div className="profile-select-container">
+            <User size={14} className="profile-icon" />
+            <span className="profile-label">BASELINE IDENTITY:</span>
             <select
               value={selectedProfileId}
               onChange={(e) => onSelectProfile(e.target.value)}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--accent-cyan)',
-                fontFamily: 'var(--font-mono)',
-                fontWeight: 700,
-                fontSize: '0.8rem',
-                cursor: 'pointer',
-                outline: 'none'
-              }}
+              className="profile-dropdown"
             >
               {profiles.map((p) => (
-                <option key={p.id} value={p.id} style={{ background: '#111827', color: '#fff' }}>
-                  {p.name} {p.id === 'ananya_sridhar' ? '(You)' : ''}
+                <option key={p.id} value={p.id}>
+                  {p.name} {p.id === 'ananya_sridhar' ? '(Enrolled)' : ''}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Simple Human-Readable Status Badge */}
-          <div className={`telemetry-pill ${isDanger ? 'status-danger' : 'status-safe'}`} style={{ padding: '0.45rem 0.9rem' }}>
-            <span className="pill-dot"></span>
-            <span style={{ fontWeight: 700 }}>
+          {/* Model indicator */}
+          <div className="engine-badge-pill">
+            <Cpu size={13} style={{ color: '#818cf8' }} />
+            <span>TypeNet &middot; LangGraph</span>
+          </div>
+
+          {/* Verification Status Badge */}
+          <div
+            className={`status-indicator-pill ${
+              isDanger
+                ? 'pill-danger'
+                : isDrift
+                ? 'pill-drift'
+                : isVerified
+                ? 'pill-trusted'
+                : 'pill-neutral'
+            }`}
+          >
+            <span className="status-dot-pulse"></span>
+            <span className="status-text">
               {isDanger ? (
-                <>🚨 INTRUDER ALERT: NOT YOU ({riskScore}% Risk)</>
+                <>INTRUDER DETECTED ({riskScore}% Risk)</>
+              ) : isDrift ? (
+                <>CADENCE DRIFT ({riskScore}% Risk)</>
               ) : isVerified ? (
-                <>✅ VERIFIED: IT'S YOU ({100 - riskScore}% Match)</>
+                <>IDENTITY VERIFIED ({100 - riskScore}% Match)</>
               ) : (
-                <>⌨️ READY — TYPE TO IDENTIFY</>
+                <>READY &mdash; AWAITING INPUT</>
               )}
             </span>
           </div>
 
-          {/* Key Counter */}
-          <div className="telemetry-pill">
-            <span style={{ color: 'var(--text-muted)' }}>KEYS LOGGED:</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{keyCount}</span>
+          {/* Keystroke counter */}
+          <div className="counter-pill">
+            <Activity size={13} style={{ color: 'var(--text-muted)' }} />
+            <span className="counter-label">KEYS:</span>
+            <span className="counter-value">{keyCount}</span>
           </div>
         </div>
       </div>

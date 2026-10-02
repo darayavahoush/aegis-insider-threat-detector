@@ -58,14 +58,14 @@ body {
 /* =========================================================================
    Header
    ========================================================================= */
-header {
-  background: rgba(11, 13, 19, 0.85);
+header, .executive-header {
+  background: rgba(11, 13, 19, 0.90);
   backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-subtle);
   position: sticky;
   top: 0;
   z-index: 50;
-  padding: 0.85rem 2rem;
+  padding: 0.75rem 2rem;
 }
 
 .header-container {
@@ -84,67 +84,168 @@ header {
   gap: 0.85rem;
 }
 
-.brand-icon {
+.brand-logo-container {
   width: 36px;
   height: 36px;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-medium);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(16, 185, 129, 0.1));
+  border: 1px solid rgba(99, 102, 241, 0.35);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.brand-title {
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.brand-shield-icon {
+  color: #818cf8;
+}
+
+.brand-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
-.brand-subtitle {
-  font-size: 0.72rem;
-  color: var(--text-muted);
+.brand-badge {
+  font-size: 0.62rem;
   font-family: var(--font-mono);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  color: #a5b4fc;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.brand-subtitle {
+  font-size: 0.73rem;
+  color: var(--text-muted);
 }
 
 .header-telemetry {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
-.telemetry-pill {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.8rem;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
+.profile-select-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.75rem;
+}
+
+.profile-icon {
+  color: #818cf8;
+}
+
+.profile-label {
+  font-size: 0.68rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.profile-dropdown {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.profile-dropdown option {
+  background: #131620;
+  color: #f8fafc;
+}
+
+.engine-badge-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
   color: var(--text-secondary);
 }
 
-.telemetry-pill.status-safe {
-  border-color: rgba(16, 185, 129, 0.3);
-  color: var(--accent-success);
-  background: var(--accent-success-subtle);
+.status-indicator-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.38rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
-.telemetry-pill.status-danger {
-  border-color: rgba(244, 63, 94, 0.35);
-  color: var(--accent-danger);
-  background: var(--accent-danger-subtle);
+.pill-trusted {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
 }
 
-.pill-dot {
-  width: 7px;
-  height: 7px;
+.pill-drift {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+}
+
+.pill-danger {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #f43f5e;
+}
+
+.pill-neutral {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+}
+
+.status-dot-pulse {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+
+.counter-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+}
+
+.counter-label {
+  color: var(--text-muted);
+}
+
+.counter-value {
+  color: var(--text-primary);
+  font-weight: 700;
 }
 
 /* =========================================================================
@@ -668,3 +769,292 @@ canvas {
   margin: 0.85rem 0;
   color: #cbd5e1;
 }
+
+/* =========================================================================
+   Executive Guided Stepper Banner
+   ========================================================================= */
+.guided-stepper-card {
+  background: linear-gradient(180deg, rgba(30, 36, 54, 0.45) 0%, rgba(19, 22, 32, 0.7) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.25rem;
+}
+
+.stepper-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.stepper-badge {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #a5b4fc;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+}
+
+.stepper-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.stepper-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.step-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+}
+
+.step-number {
+  font-size: 0.64rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: #818cf8;
+  margin-bottom: 0.2rem;
+}
+
+.step-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.step-desc {
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* =========================================================================
+   Executive Terminal Actions Toolbar
+   ========================================================================= */
+.terminal-actions-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle);
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.action-btn-primary {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  border: 1px solid #10b981;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
+}
+
+.action-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.action-btn-danger {
+  background: rgba(244, 63, 94, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #f43f5e;
+}
+
+.action-btn-danger:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+.action-btn-secondary {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+}
+
+.action-btn-secondary:hover {
+  border-color: #818cf8;
+}
+
+.action-btn-subtle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.action-btn-subtle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.action-btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+}
+
+.action-btn-ghost:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* =========================================================================
+   Cadence Telemetry Strip
+   ========================================================================= */
+.cadence-telemetry-strip {
+  display: flex;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 0.85rem;
+}
+
+.cadence-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+}
+
+.cadence-lbl {
+  color: var(--text-muted);
+}
+
+.cadence-val {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+/* =========================================================================
+   TypeNet Telemetry Box & Progress
+   ========================================================================= */
+.typenet-telemetry-box {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.metric-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.65rem;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+.typenet-submetrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  font-size: 0.71rem;
+  font-family: var(--font-mono);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.45rem;
+}
+
+.submetric-lbl {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.65rem;
+}
+
+.submetric-val {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   Voice Check & Assessment Boxes
+   ========================================================================= */
+.voice-check-banner {
+  margin-top: 0.95rem;
+  padding: 0.85rem;
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-sm);
+}
+
+.quick-vu-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.quick-vu-fill {
+  height: 100%;
+  background: #10b981;
+  transition: width 0.06s ease;
+}
+
+.oscilloscope-legend {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-top: 0.35rem;
+}
+
+.system-assessment-box {
+  margin-top: 0.95rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+

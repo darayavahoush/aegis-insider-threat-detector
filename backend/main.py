@@ -17,6 +17,7 @@ from .database import (
     get_profile,
     list_profiles,
     save_profile,
+    calibrate_profile,
     add_audit_event,
     AUDIT_LOGS,
     clear_audit_logs
@@ -75,6 +76,22 @@ def enroll_profile(request: ProfileEnrollmentRequest):
         "success": True,
         "message": f"Biometric profile for '{request.name}' successfully enrolled and activated.",
         "profile_id": request.id
+    }
+
+@app.post("/api/profiles/calibrate")
+def auto_calibrate_profile(payload: TelemetryEvaluationRequest):
+    if not payload.keystrokes:
+        raise HTTPException(status_code=400, detail="Keystroke features required for calibration")
+    updated = calibrate_profile(payload.profile_id, payload.keystrokes, payload.voice)
+    return {
+        "success": True,
+        "message": f"Biometric baseline successfully calibrated to {updated['name']}'s typing rhythm!",
+        "profile": {
+            "id": updated["id"],
+            "name": updated["name"],
+            "keystroke_baseline": updated["keystroke_baseline"].model_dump(),
+            "voice_baseline": updated["voice_baseline"].model_dump() if updated.get("voice_baseline") else None
+        }
     }
 
 @app.post("/api/evaluate", response_model=ThreatAssessmentResponse)

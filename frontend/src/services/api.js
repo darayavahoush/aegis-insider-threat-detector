@@ -39,6 +39,16 @@ export async function enrollProfile(profileData) {
   return res.json();
 }
 
+export async function calibrateProfile(payload) {
+  const res = await fetch(`${API_BASE}/profiles/calibrate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('Calibration failed');
+  return res.json();
+}
+
 export async function fetchAuditLogs() {
   const res = await fetch(`${API_BASE}/logs`);
   return res.json();

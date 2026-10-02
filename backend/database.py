@@ -7,8 +7,42 @@ from .models import (
     AuditEvent
 )
 
-# Baseline Enrolled Identities
+# Baseline Enrolled Identities (Default is Ananya Sridhar - Authorized User)
 PROFILES: Dict[str, dict] = {
+    "ananya_sridhar": {
+        "id": "ananya_sridhar",
+        "name": "Ananya Sridhar",
+        "role": "Authorized System Owner / Analyst",
+        "department": "Security Intelligence",
+        "clearance": "Level-5 (Master Access)",
+        "keystroke_baseline": KeystrokeFeatureVector(
+            key_count=100,
+            dwell_mean=110.0,
+            dwell_std=35.0,
+            flight_mean=145.0,
+            flight_std=50.0,
+            rhythm_cv=0.32,
+            wpm=58,
+            backspace_rate=0.04,
+            digraph_stats={
+                "th": DigraphDetail(mean=120.0, count=20),
+                "he": DigraphDetail(mean=115.0, count=18),
+                "in": DigraphDetail(mean=125.0, count=16),
+                "er": DigraphDetail(mean=118.0, count=19),
+                "an": DigraphDetail(mean=130.0, count=15),
+                "re": DigraphDetail(mean=122.0, count=17),
+                "on": DigraphDetail(mean=128.0, count=14)
+            }
+        ),
+        "voice_baseline": VoiceFeatureVector(
+            pitch_mean=210.0,
+            pitch_std=35.0,
+            centroid_mean=1750.0,
+            rms_mean=0.20,
+            zcr_mean=0.080,
+            sample_count=40
+        )
+    },
     "sarah_vance": {
         "id": "sarah_vance",
         "name": "Sarah Vance",
@@ -18,9 +52,9 @@ PROFILES: Dict[str, dict] = {
         "keystroke_baseline": KeystrokeFeatureVector(
             key_count=120,
             dwell_mean=95.0,
-            dwell_std=18.0,
+            dwell_std=20.0,
             flight_mean=120.0,
-            flight_std=30.0,
+            flight_std=32.0,
             rhythm_cv=0.25,
             wpm=68,
             backspace_rate=0.03,
@@ -36,7 +70,7 @@ PROFILES: Dict[str, dict] = {
         ),
         "voice_baseline": VoiceFeatureVector(
             pitch_mean=195.0,
-            pitch_std=20.0,
+            pitch_std=22.0,
             centroid_mean=1740.0,
             rms_mean=0.22,
             zcr_mean=0.082,
@@ -52,9 +86,9 @@ PROFILES: Dict[str, dict] = {
         "keystroke_baseline": KeystrokeFeatureVector(
             key_count=150,
             dwell_mean=125.0,
-            dwell_std=24.0,
+            dwell_std=25.0,
             flight_mean=165.0,
-            flight_std=42.0,
+            flight_std=45.0,
             rhythm_cv=0.26,
             wpm=50,
             backspace_rate=0.05,
@@ -68,7 +102,7 @@ PROFILES: Dict[str, dict] = {
         ),
         "voice_baseline": VoiceFeatureVector(
             pitch_mean=118.0,
-            pitch_std=14.0,
+            pitch_std=16.0,
             centroid_mean=1420.0,
             rms_mean=0.20,
             zcr_mean=0.075,
@@ -81,7 +115,7 @@ PROFILES: Dict[str, dict] = {
 AUDIT_LOGS: List[AuditEvent] = []
 
 def get_profile(profile_id: str) -> Optional[dict]:
-    return PROFILES.get(profile_id) or PROFILES.get("sarah_vance")
+    return PROFILES.get(profile_id) or PROFILES.get("ananya_sridhar")
 
 def list_profiles() -> List[dict]:
     result = []
@@ -98,6 +132,29 @@ def list_profiles() -> List[dict]:
 
 def save_profile(profile_data: dict) -> None:
     PROFILES[profile_data["id"]] = profile_data
+
+def calibrate_profile(profile_id: str, keystrokes: KeystrokeFeatureVector, voice: Optional[VoiceFeatureVector] = None) -> dict:
+    prof = get_profile(profile_id)
+    if not prof:
+        prof = PROFILES["ananya_sridhar"]
+    
+    # Adapt baseline to the user's observed keystrokes
+    prof["keystroke_baseline"] = KeystrokeFeatureVector(
+        key_count=max(keystrokes.key_count, 50),
+        dwell_mean=keystrokes.dwell_mean,
+        dwell_std=max(keystrokes.dwell_std, 22.0),
+        flight_mean=keystrokes.flight_mean,
+        flight_std=max(keystrokes.flight_std, 35.0),
+        rhythm_cv=keystrokes.rhythm_cv,
+        wpm=keystrokes.wpm,
+        backspace_rate=keystrokes.backspace_rate,
+        digraph_stats=keystrokes.digraph_stats or prof["keystroke_baseline"].digraph_stats
+    )
+
+    if voice:
+        prof["voice_baseline"] = voice
+
+    return prof
 
 def add_audit_event(
     profile_id: str,

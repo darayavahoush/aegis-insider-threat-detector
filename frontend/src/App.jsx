@@ -13,6 +13,7 @@ import {
   fetchProfiles,
   fetchProfileDetails,
   evaluateTelemetry,
+  calibrateProfile,
   fetchAuditLogs,
   quarantineSession,
   triggerStepUp
@@ -21,7 +22,7 @@ import {
 export default function App() {
   const [activeTab, setActiveTab] = useState('tab-terminal');
   const [profiles, setProfiles] = useState([]);
-  const [selectedProfileId, setSelectedProfileId] = useState('sarah_vance');
+  const [selectedProfileId, setSelectedProfileId] = useState('ananya_sridhar');
   const [activeProfile, setActiveProfile] = useState(null);
 
   const [assessment, setAssessment] = useState({
@@ -37,6 +38,7 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [simulatedVoice, setSimulatedVoice] = useState(null);
+  const [quickVoiceState, setQuickVoiceState] = useState(null);
 
   const collector = useKeystrokeCollector();
   const voiceRecorder = useVoiceRecorder();
@@ -48,7 +50,7 @@ export default function App() {
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3800);
+    }, 4000);
   }, []);
 
   // Load initial profiles & logs
@@ -58,7 +60,9 @@ export default function App() {
         const plist = await fetchProfiles();
         setProfiles(plist);
         if (plist.length > 0) {
-          const detail = await fetchProfileDetails(selectedProfileId);
+          const defaultId = plist.some((p) => p.id === 'ananya_sridhar') ? 'ananya_sridhar' : plist[0].id;
+          setSelectedProfileId(defaultId);
+          const detail = await fetchProfileDetails(defaultId);
           setActiveProfile(detail);
         }
         const logs = await fetchAuditLogs();
@@ -76,7 +80,8 @@ export default function App() {
     try {
       const detail = await fetchProfileDetails(id);
       setActiveProfile(detail);
-      showToast(`Active baseline profile: ${detail.name}`, 'info');
+      setQuickVoiceState(null);
+      showToast(`Switched active baseline identity to: ${detail.name}`, 'info');
       triggerEvaluation(null, detail.id);
     } catch (err) {
       showToast('Error switching profile: ' + err.message, 'error');
@@ -116,9 +121,112 @@ export default function App() {
       clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         triggerEvaluation();
-      }, 500);
+      }, 450);
     }
   }, [collector.keyCount, triggerEvaluation]);
+
+  // 1-Click Auto-Calibrate (Teaches the model: "This is Me!")
+  const handleAutoCalibrate = async () => {
+    const feat = collector.getFeatures();
+    if (!feat || feat.key_count < 5) {
+      showToast('⚠️ Type at least 5 to 10 words into the terminal first so the system can measure your natural speed!', 'warn');
+      return;
+    }
+
+    try {
+      const res = await calibrateProfile({
+        profile_id: selectedProfileId,
+        keystrokes: feat,
+        voice: simulatedVoice || null
+      });
+
+      setActiveProfile(res.profile);
+      showToast(`🎯 Profile Calibrated! System now recognizes your natural hold (${feat.dwell_mean}ms) and speed (${feat.wpm} WPM).`, 'success');
+
+      // Immediate re-evaluation with the newly updated baseline
+      triggerEvaluation(feat, selectedProfileId);
+    } catch (err) {
+      showToast('Calibration failed: ' + err.message, 'error');
+    }
+  };
+
+  // Quick Stranger / Intruder Simulation
+  const handleQuickSimulateStranger = () => {
+    const strangerFeatures = {
+      key_count: 32,
+      dwell_mean: 230,
+      dwell_std: 75,
+      flight_mean: 390,
+      flight_std: 140,
+      rhythm_cv: 0.62,
+      wpm: 22,
+      backspace_rate: 0.28,
+      digraph_stats: {
+        th: { mean: 320, count: 3 },
+        he: { mean: 350, count: 2 },
+        in: { mean: 300, count: 4 }
+      },
+      is_synthetic_bot: false
+    };
+
+    const el = document.getElementById('react-terminal-input');
+    if (el) el.value = '[INTRUDER SIMULATION RUNNING] Stranger sitting at terminal typing slowly with unfamiliar jerky cadence...';
+
+    triggerEvaluation(strangerFeatures, selectedProfileId);
+    showToast(`🚨 Intruder Simulation Injected: Alarm tripped against ${activeProfile?.name || 'Owner'}!`, 'error');
+  };
+
+  // Quick Voice Verification from Continuous Terminal
+  const handleQuickVoiceVerify = async () => {
+    showToast('🎙️ Microphone active! Speak now: "My voice is my password, verify my clearance"', 'info');
+    try {
+      await voiceRecorder.startListening();
+      setTimeout(async () => {
+        const acoustic = voiceRecorder.stopListening();
+        setSimulatedVoice(acoustic);
+
+        const basePitch = activeProfile?.voice_baseline?.pitch_mean || 210;
+        const pitchDelta = Math.abs(acoustic.pitch_mean - basePitch);
+        const isVer = pitchDelta < 40;
+
+        setQuickVoiceState({
+          isVerified: isVer,
+          message: isVer
+            ? `Observed pitch ${acoustic.pitch_mean}Hz matches ${activeProfile?.name || 'your'} voice print!`
+            : `Observed pitch ${acoustic.pitch_mean}Hz deviates from ${activeProfile?.name || 'your'} baseline (${basePitch}Hz)!`
+        });
+
+        showToast(
+          isVer ? `✅ Voice Verified: Matches ${activeProfile?.name || 'You'}!` : '🚨 Voice Mismatch: Someone else is speaking!',
+          isVer ? 'success' : 'error'
+        );
+
+        triggerEvaluation(null, selectedProfileId);
+      }, 3500);
+    } catch (e) {
+      showToast('Voice capture error: ' + e.message, 'error');
+    }
+  };
+
+  // 1-Click Save Voice Baseline
+  const handleSaveVoiceBaseline = async (voiceProfile) => {
+    try {
+      const res = await calibrateProfile({
+        profile_id: selectedProfileId,
+        keystrokes: collector.getFeatures() || activeProfile.keystroke_baseline,
+        voice: voiceProfile
+      });
+      setActiveProfile(res.profile);
+      setQuickVoiceState({
+        isVerified: true,
+        message: `Your voice (${voiceProfile.pitch_mean}Hz pitch) has been saved as your enrolled baseline.`
+      });
+      showToast(`🎯 Voice baseline saved! Pitch ${voiceProfile.pitch_mean}Hz is now registered as your official voice.`, 'success');
+      triggerEvaluation(null, selectedProfileId);
+    } catch (e) {
+      showToast('Failed to save voice baseline: ' + e.message, 'error');
+    }
+  };
 
   // Fast Actions
   const handleQuarantine = async () => {
@@ -150,35 +258,43 @@ export default function App() {
     }
   };
 
-  // Voice simulations
+  // Voice simulations in Voice tab
   const handleSimulateValidVoice = () => {
-    const vBase = activeProfile?.voice_baseline || { pitch_mean: 195, centroid_mean: 1740 };
+    const vBase = activeProfile?.voice_baseline || { pitch_mean: 210, centroid_mean: 1750 };
     const valid = {
-      pitch_mean: vBase.pitch_mean - 3,
-      pitch_std: 15,
+      pitch_mean: vBase.pitch_mean - 4,
+      pitch_std: 18,
       centroid_mean: vBase.centroid_mean,
       rms_mean: 0.22,
       zcr_mean: 0.08
     };
     setSimulatedVoice(valid);
+    setQuickVoiceState({
+      isVerified: true,
+      message: `Simulated genuine speaker matches ${activeProfile?.name || 'Owner'}'s vocal cords.`
+    });
     showToast('Legitimate voice acoustic signature simulated.', 'success');
     triggerEvaluation(null, selectedProfileId);
   };
 
   const handleSimulateSpoofVoice = () => {
     const spoof = {
-      pitch_mean: 95, // 100Hz mismatch
+      pitch_mean: 95, // Extreme mismatch
       pitch_std: 12,
       centroid_mean: 1100,
       rms_mean: 0.12,
       zcr_mean: 0.045
     };
     setSimulatedVoice(spoof);
+    setQuickVoiceState({
+      isVerified: false,
+      message: `Voice spoof flagged: 115Hz deviation from ${activeProfile?.name || 'Owner'}'s vocal print.`
+    });
     showToast('Voice spoof / deepfake scenario injected!', 'error');
     triggerEvaluation(null, selectedProfileId);
   };
 
-  // Scenario injection
+  // Scenario injection from Sandbox
   const handleInjectScenario = (scenario) => {
     setSimulatedVoice(scenario.payload.voice);
     triggerEvaluation(scenario.payload.keystrokes, selectedProfileId);
@@ -256,6 +372,7 @@ export default function App() {
             onClear={() => {
               collector.reset();
               setSimulatedVoice(null);
+              setQuickVoiceState(null);
               setAssessment({
                 risk_score: 0,
                 level: 'TRUSTED',
@@ -269,6 +386,10 @@ export default function App() {
             }}
             onQuarantine={handleQuarantine}
             onStepUp={handleStepUp}
+            onAutoCalibrate={handleAutoCalibrate}
+            onQuickSimulateStranger={handleQuickSimulateStranger}
+            onQuickVoiceVerify={handleQuickVoiceVerify}
+            quickVoiceState={quickVoiceState}
           />
         )}
 
@@ -279,6 +400,8 @@ export default function App() {
             voiceAnomaly={assessment.breakdown?.voice_anomaly}
             onSimulateValid={handleSimulateValidVoice}
             onSimulateSpoof={handleSimulateSpoofVoice}
+            onSaveVoiceBaseline={handleSaveVoiceBaseline}
+            showToast={showToast}
           />
         )}
 
@@ -305,7 +428,18 @@ export default function App() {
       </main>
 
       {/* Toast Notification Container */}
-      <div id="toast-container" style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div
+        id="toast-container"
+        style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem'
+        }}
+      >
         {toasts.map((t) => (
           <div
             key={t.id}

@@ -1,10 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Mic, Volume2, ShieldCheck, AlertTriangle, Target, CheckCircle2, XCircle } from 'lucide-react';
+import { Mic, Volume2, ShieldCheck, AlertTriangle, Target, AlertCircle } from 'lucide-react';
 
 export default function VoiceConsole({
   recorder,
   activeProfile,
   voiceAnomaly,
+  onEvaluateVoice,
   onSimulateValid,
   onSimulateSpoof,
   onSaveVoiceBaseline,
@@ -14,6 +15,7 @@ export default function VoiceConsole({
   const spectrumCanvasRef = useRef(null);
   const [recordedAudioProfile, setRecordedAudioProfile] = useState(null);
   const [countdown, setCountdown] = useState(0);
+  const timerRef = useRef(null);
 
   const ownerName = activeProfile?.name || 'Ananya Sridhar';
   const vBase = activeProfile?.voice_baseline || {
@@ -77,34 +79,42 @@ export default function VoiceConsole({
     }
   };
 
-  // Countdown handler for 3.5s auto capture
-  useEffect(() => {
-    let timer;
-    if (recorder.isRecording && countdown > 0) {
-      timer = setTimeout(() => {
-        setCountdown((c) => c - 1);
-      }, 1000);
-    } else if (recorder.isRecording && countdown === 0) {
-      // Auto-stop after 3.5s
-      const profile = recorder.stopListening();
-      setRecordedAudioProfile(profile);
-      if (onSaveVoiceBaseline) {
-        onSaveVoiceBaseline(profile);
-      }
+  const finishRecording = () => {
+    clearInterval(timerRef.current);
+    const profile = recorder.stopListening();
+    setRecordedAudioProfile(profile);
+    setCountdown(0);
+
+    if (onEvaluateVoice) {
+      onEvaluateVoice(profile);
     }
-    return () => clearTimeout(timer);
-  }, [recorder.isRecording, countdown, recorder, onSaveVoiceBaseline]);
+    showToast(`Voice captured: ${profile.pitch_mean} Hz pitch, ${profile.centroid_mean} Hz timbre.`, 'info');
+  };
 
   const toggleRecording = async () => {
     if (!recorder.isRecording) {
-      setCountdown(3);
+      setCountdown(4);
       await recorder.startListening(handleAudioFrame);
+
+      let timeLeft = 4;
+      timerRef.current = setInterval(() => {
+        timeLeft -= 1;
+        setCountdown(timeLeft);
+        if (timeLeft <= 0) {
+          finishRecording();
+        }
+      }, 1000);
     } else {
-      const profile = recorder.stopListening();
-      setRecordedAudioProfile(profile);
-      setCountdown(0);
+      finishRecording();
     }
   };
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   const percent = voiceAnomaly !== null && voiceAnomaly !== undefined ? voiceAnomaly : null;
   const isSpoof = percent !== null && percent >= 45;
@@ -113,6 +123,26 @@ export default function VoiceConsole({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
+      {/* Microphone Permission Warning if blocked */}
+      {recorder.permissionError && (
+        <div
+          style={{
+            background: 'var(--accent-warning-subtle)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}
+        >
+          <AlertCircle size={20} color="#f59e0b" />
+          <div style={{ fontSize: '0.82rem', color: '#fef3c7' }}>
+            <strong>Browser Microphone Access Required:</strong> Your browser blocked or lacks permission to access the microphone ({recorder.permissionError}). Please check your browser address bar permissions, or use the quick simulation buttons below.
+          </div>
+        </div>
+      )}
+
       {/* =========================================================================
           VOICE STATUS CARD
          ========================================================================= */}
@@ -154,7 +184,7 @@ export default function VoiceConsole({
             </div>
 
             <div>
-              <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                 VOICE ACOUSTIC VERIFICATION
               </div>
               <div style={{ fontSize: '1.35rem', fontWeight: 700, marginTop: '0.15rem' }}>
@@ -172,7 +202,7 @@ export default function VoiceConsole({
                 ) : isSpoof ? (
                   <>Observed pitch deviates ({percent}% anomaly) from {ownerName}'s enrolled voiceprint ({vBase.pitch_mean} Hz).</>
                 ) : (
-                  <>The DSP engine extracts pitch via Normalized Cross-Correlation (NCCF) and formant resonance ratios.</>
+                  <>The YIN DSP estimator extracts fundamental pitch ($F_0$) and formant resonances ($F_1/F_2$).</>
                 )}
               </p>
             </div>
@@ -220,7 +250,7 @@ export default function VoiceConsole({
               className="btn btn-success"
               onClick={() => onSaveVoiceBaseline(recordedAudioProfile)}
             >
-              <Target size={15} /> Save as My Enrolled Voice
+              <Target size={15} /> Save {recordedAudioProfile.pitch_mean} Hz as My Enrolled Voice
             </button>
           </div>
         )}
@@ -280,19 +310,21 @@ export default function VoiceConsole({
               Speaks naturally for 3 to 4 seconds, then evaluates against {ownerName}'s baseline.
             </div>
 
-            {/* Live VU Meter */}
+            {/* Live Responsive VU Meter */}
             <div style={{ width: '100%', maxWidth: '320px', marginTop: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                 <span>MIC LEVEL</span>
-                <span>{recorder.metrics.isSpeaking ? 'VOICE ACTIVE' : 'QUIET'}</span>
+                <span style={{ color: recorder.metrics.isSpeaking ? '#10b981' : 'var(--text-muted)' }}>
+                  {recorder.metrics.isSpeaking ? 'VOICE ACTIVE' : 'QUIET'}
+                </span>
               </div>
-              <div style={{ width: '100%', height: '7px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: '8px', background: 'rgba(255, 255, 255, 0.08)', borderRadius: '4px', overflow: 'hidden' }}>
                 <div
                   style={{
                     height: '100%',
                     width: `${Math.round((recorder.metrics.level || 0) * 100)}%`,
-                    background: recorder.metrics.level > 0.7 ? '#f59e0b' : '#10b981',
-                    transition: 'width 0.06s ease'
+                    background: recorder.metrics.level > 0.75 ? '#f59e0b' : '#10b981',
+                    transition: 'width 0.05s ease'
                   }}
                 />
               </div>
@@ -302,7 +334,7 @@ export default function VoiceConsole({
           {/* Waveform Canvas */}
           <div style={{ marginBottom: '0.85rem' }}>
             <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
-              TIME-DOMAIN WAVEFORM (VAD FILTERED)
+              TIME-DOMAIN WAVEFORM (REAL-TIME AUDIO)
             </div>
             <div className="canvas-wrapper">
               <canvas ref={waveformCanvasRef} width={600} height={90} />
@@ -333,7 +365,7 @@ export default function VoiceConsole({
             <div className="metric-row">
               <span className="metric-label">Observed Pitch (F0):</span>
               <span className="metric-value">
-                {recorder.metrics.pitch ? `${recorder.metrics.pitch} Hz` : '-- Hz'}
+                {recorder.metrics.pitch ? `${recorder.metrics.pitch} Hz` : recordedAudioProfile ? `${recordedAudioProfile.pitch_mean} Hz` : '-- Hz'}
               </span>
             </div>
 
@@ -347,7 +379,7 @@ export default function VoiceConsole({
             <div className="metric-row">
               <span className="metric-label">Formant Energy Ratio (F1/F2):</span>
               <span className="metric-value">
-                {recorder.metrics.formantRatio ? `${recorder.metrics.formantRatio}` : '--'}{' '}
+                {recorder.metrics.formantRatio ? `${recorder.metrics.formantRatio}` : recordedAudioProfile ? `${recordedAudioProfile.formant_ratio || 1.22}` : '--'}{' '}
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Target: {vBase.formant_ratio || 1.22})</span>
               </span>
             </div>
@@ -355,14 +387,14 @@ export default function VoiceConsole({
             <div className="metric-row">
               <span className="metric-label">Spectral Centroid:</span>
               <span className="metric-value">
-                {recorder.metrics.centroid ? `${recorder.metrics.centroid} Hz` : '-- Hz'}{' '}
+                {recorder.metrics.centroid ? `${recorder.metrics.centroid} Hz` : recordedAudioProfile ? `${recordedAudioProfile.centroid_mean} Hz` : '-- Hz'}{' '}
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Target: {vBase.centroid_mean} Hz)</span>
               </span>
             </div>
 
             <div className="metric-row">
               <span className="metric-label">Signal Energy (RMS):</span>
-              <span className="metric-value">{recorder.metrics.rms || '--'}</span>
+              <span className="metric-value">{recorder.metrics.rms || (recordedAudioProfile ? recordedAudioProfile.rms_mean : '--')}</span>
             </div>
 
             <div

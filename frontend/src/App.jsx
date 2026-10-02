@@ -294,9 +294,18 @@ export default function App() {
     }
   };
 
+  // Live recorded voice evaluation from Voice tab
+  const handleEvaluateVoice = useCallback(
+    (voiceProfile) => {
+      setSimulatedVoice(voiceProfile);
+      triggerEvaluation(null, selectedProfileId, voiceProfile);
+    },
+    [selectedProfileId, triggerEvaluation]
+  );
+
   // Voice simulations in Voice tab
   const handleSimulateValidVoice = () => {
-    const vBase = activeProfile?.voice_baseline || { pitch_mean: 210, centroid_mean: 1750 };
+    const vBase = activeProfile?.voice_baseline || { pitch_mean: 195, centroid_mean: 1720 };
     const valid = {
       pitch_mean: vBase.pitch_mean - 4,
       pitch_std: 18,
@@ -435,6 +444,7 @@ export default function App() {
             recorder={voiceRecorder}
             activeProfile={activeProfile}
             voiceAnomaly={assessment.breakdown?.voice_anomaly}
+            onEvaluateVoice={handleEvaluateVoice}
             onSimulateValid={handleSimulateValidVoice}
             onSimulateSpoof={handleSimulateSpoofVoice}
             onSaveVoiceBaseline={handleSaveVoiceBaseline}

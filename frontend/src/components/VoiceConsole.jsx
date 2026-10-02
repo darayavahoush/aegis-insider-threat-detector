@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Mic, Volume2, ShieldCheck, AlertTriangle, Target, CheckCircle2 } from 'lucide-react';
+import { Mic, Volume2, ShieldCheck, AlertTriangle, Target } from 'lucide-react';
 
 export default function VoiceConsole({
   recorder,
@@ -16,7 +16,7 @@ export default function VoiceConsole({
 
   const ownerName = activeProfile?.name || 'Ananya Sridhar';
 
-  // Real-time canvas renderers
+  // Real-time canvas renderers (calm slate & emerald colors)
   const handleAudioFrame = ({ timeData, freqData }) => {
     // Waveform
     const wCanvas = waveformCanvasRef.current;
@@ -25,11 +25,11 @@ export default function VoiceConsole({
       const width = wCanvas.width;
       const height = wCanvas.height;
 
-      ctx.fillStyle = '#050811';
+      ctx.fillStyle = '#090b10';
       ctx.fillRect(0, 0, width, height);
 
-      ctx.strokeStyle = '#00f0ff';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
 
       const sliceWidth = width / timeData.length;
@@ -51,7 +51,7 @@ export default function VoiceConsole({
       const width = sCanvas.width;
       const height = sCanvas.height;
 
-      ctx.fillStyle = '#050811';
+      ctx.fillStyle = '#090b10';
       ctx.fillRect(0, 0, width, height);
 
       const barCount = 48;
@@ -60,16 +60,11 @@ export default function VoiceConsole({
 
       for (let i = 0; i < barCount; i++) {
         const val = freqData[i * step] / 255;
-        const barHeight = val * (height - 10);
+        const barHeight = val * (height - 8);
         const x = i * (barWidth + 2);
         const y = height - barHeight;
 
-        const grad = ctx.createLinearGradient(0, height, 0, 0);
-        grad.addColorStop(0, '#00f0ff');
-        grad.addColorStop(0.7, '#38bdf8');
-        grad.addColorStop(1, '#a855f7');
-
-        ctx.fillStyle = grad;
+        ctx.fillStyle = '#4f46e5';
         ctx.fillRect(x, y, barWidth, barHeight);
       }
     }
@@ -93,81 +88,82 @@ export default function VoiceConsole({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* =========================================================================
-          HERO VOICE VERDICT CARD
+          VOICE STATUS CARD
          ========================================================================= */}
       <div
         className="glass-card"
         style={{
           border: isMatch
-            ? '2px solid rgba(16, 185, 129, 0.7)'
+            ? '1px solid rgba(16, 185, 129, 0.4)'
             : isSpoof
-            ? '2px solid rgba(239, 68, 68, 0.8)'
-            : '2px solid rgba(56, 189, 248, 0.3)',
+            ? '1px solid rgba(244, 63, 94, 0.4)'
+            : '1px solid var(--border-subtle)',
           background: isMatch
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(10, 14, 23, 0.95) 100%)'
+            ? 'rgba(16, 185, 129, 0.04)'
             : isSpoof
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(10, 14, 23, 0.95) 100%)'
-            : 'rgba(17, 24, 39, 0.85)',
+            ? 'rgba(244, 63, 94, 0.05)'
+            : 'var(--bg-surface)',
           padding: '1.5rem'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div
               style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
+                width: '48px',
+                height: '48px',
+                borderRadius: '10px',
                 background: isMatch
-                  ? 'rgba(16, 185, 129, 0.2)'
+                  ? 'rgba(16, 185, 129, 0.12)'
                   : isSpoof
-                  ? 'rgba(239, 68, 68, 0.25)'
-                  : 'rgba(0, 240, 255, 0.15)',
+                  ? 'rgba(244, 63, 94, 0.12)'
+                  : 'var(--bg-surface-elevated)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: `2px solid ${isMatch ? '#10b981' : isSpoof ? '#ef4444' : '#00f0ff'}`
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}
             >
-              <Mic size={30} color={isMatch ? '#10b981' : isSpoof ? '#ef4444' : '#00f0ff'} />
+              <Mic size={24} color={isMatch ? '#10b981' : isSpoof ? '#f43f5e' : '#94a3b8'} />
             </div>
 
             <div>
-              <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-                VOICE ACOUSTIC VERDICT
+              <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+                VOICE ACOUSTIC VERIFICATION
               </div>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, marginTop: '0.15rem' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 700, marginTop: '0.15rem' }}>
                 {isMatch ? (
-                  <span style={{ color: 'var(--accent-emerald)' }}>✅ VOICE VERIFIED: IT'S YOU! ({ownerName})</span>
+                  <span style={{ color: 'var(--accent-success)' }}>Voice Confirmed: {ownerName}</span>
                 ) : isSpoof ? (
-                  <span style={{ color: 'var(--accent-danger)' }}>🚨 VOICE SPOOF ALERT: NOT {ownerName.toUpperCase()}!</span>
+                  <span style={{ color: 'var(--accent-danger)' }}>Voice Mismatch Detected</span>
                 ) : (
-                  <span style={{ color: 'var(--accent-cyan)' }}>🎙️ CLICK MICROPHONE BELOW & SPEAK PASSPHRASE</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Click microphone below and speak passphrase</span>
                 )}
               </div>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                 {isMatch ? (
-                  <>Vocal cords pitch and spectral timbre match {ownerName}'s enrolled profile (<strong>{100 - percent}% Match</strong>).</>
+                  <>Vocal tract resonances match {ownerName}'s enrolled profile (<strong>{100 - percent}% confidence</strong>).</>
                 ) : isSpoof ? (
-                  <>Vocal pitch deviates significantly from {ownerName}'s vocal tract geometry (<strong>{percent}% Anomaly</strong>).</>
+                  <>Observed pitch deviates from {ownerName}'s enrolled baseline.</>
                 ) : (
-                  <>The AI measures fundamental pitch frequency ($F_0$) and vocal tract timbre in real time using the Web Audio API.</>
+                  <>The system measures fundamental pitch ($F_0$) and timbre using the browser's Web Audio API.</>
                 )}
               </p>
             </div>
           </div>
 
-          <div style={{ textAlign: 'right', minWidth: '130px' }}>
-            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'right', minWidth: '120px' }}>
+            <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
               VOICE MATCH
             </div>
             <div
               style={{
-                fontSize: '2.2rem',
-                fontWeight: 900,
+                fontSize: '2rem',
+                fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
-                color: isMatch ? 'var(--accent-emerald)' : isSpoof ? 'var(--accent-danger)' : 'var(--text-primary)',
-                lineHeight: 1
+                color: isMatch ? 'var(--accent-success)' : isSpoof ? 'var(--accent-danger)' : 'var(--text-primary)',
+                lineHeight: 1,
+                marginTop: '0.2rem'
               }}
             >
               {percent !== null ? `${100 - percent}%` : '--'}
@@ -181,7 +177,7 @@ export default function VoiceConsole({
             style={{
               marginTop: '1.25rem',
               paddingTop: '1rem',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+              borderTop: '1px solid var(--border-subtle)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -197,7 +193,7 @@ export default function VoiceConsole({
               className="btn btn-success"
               onClick={() => onSaveVoiceBaseline(recordedAudioProfile)}
             >
-              <Target size={15} /> 🎯 1-Click: "Save This As My Enrolled Voice"
+              <Target size={15} /> Save as My Enrolled Voice
             </button>
           </div>
         )}
@@ -211,34 +207,26 @@ export default function VoiceConsole({
         <div className="glass-card">
           <div className="card-header">
             <div className="card-title">
-              <Mic size={18} /> Step-by-Step Voice Verification
+              <Mic size={16} /> Audio Capture
             </div>
             <span className="card-tag">
-              {recorder.mode === 'live_mic' ? 'LIVE MICROPHONE' : 'SYNTHETIC DSP READY'}
+              {recorder.mode === 'live_mic' ? 'MICROPHONE' : 'DSP READY'}
             </span>
           </div>
 
           <div
             style={{
-              background: 'rgba(0, 240, 255, 0.05)',
-              border: '1px solid rgba(0, 240, 255, 0.2)',
-              borderRadius: '8px',
-              padding: '1rem',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid var(--border-subtle)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0.85rem 1rem',
               marginBottom: '1.25rem'
             }}
           >
-            <strong style={{ color: 'var(--accent-cyan)', fontSize: '0.85rem' }}>
-              🗣️ Official Passphrase (Speak this into mic):
-            </strong>
-            <p
-              style={{
-                fontSize: '1.05rem',
-                color: '#fff',
-                fontFamily: 'var(--font-mono)',
-                marginTop: '0.35rem',
-                fontWeight: 700
-              }}
-            >
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.72rem', fontFamily: 'var(--font-mono)', textTransform: 'uppercase' }}>
+              Verification Passphrase
+            </div>
+            <p style={{ fontSize: '0.92rem', color: '#fff', marginTop: '0.25rem', fontWeight: 500 }}>
               "My voice is my password, verify my security clearance."
             </p>
           </div>
@@ -250,37 +238,37 @@ export default function VoiceConsole({
               style={{ cursor: 'pointer' }}
               title={recorder.isRecording ? 'Click to Stop' : 'Click to Speak'}
             >
-              <Mic size={36} />
+              <Mic size={28} />
             </div>
-            <div style={{ fontWeight: 800, fontSize: '1rem', marginTop: '0.25rem' }}>
+            <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
               {recorder.isRecording ? (
-                <span style={{ color: 'var(--accent-danger)' }}>🔴 RECORDING LIVE... (Speak Now)</span>
+                <span style={{ color: 'var(--accent-danger)' }}>Recording... Speak now</span>
               ) : (
-                <span style={{ color: 'var(--accent-cyan)' }}>👉 Click Circle to Start Microphone</span>
+                <span style={{ color: 'var(--text-primary)' }}>Click to start microphone</span>
               )}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '0.35rem' }}>
-              Speak for 3 to 4 seconds, then click again to stop and evaluate.
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              Speak for 3 to 4 seconds, then click again to evaluate.
             </div>
           </div>
 
           {/* Waveform Canvas */}
-          <div style={{ marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              TIME-DOMAIN WAVEFORM (LIVE OSCILLOSCOPE)
+          <div style={{ marginBottom: '0.85rem' }}>
+            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              TIME-DOMAIN WAVEFORM
             </div>
             <div className="canvas-wrapper">
-              <canvas ref={waveformCanvasRef} width={600} height={100} />
+              <canvas ref={waveformCanvasRef} width={600} height={90} />
             </div>
           </div>
 
           {/* Spectrum Canvas */}
           <div>
-            <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-              FREQUENCY SPECTRUM (FFT FORMANTS)
+            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              FREQUENCY SPECTRUM
             </div>
             <div className="canvas-wrapper">
-              <canvas ref={spectrumCanvasRef} width={600} height={100} />
+              <canvas ref={spectrumCanvasRef} width={600} height={90} />
             </div>
           </div>
         </div>
@@ -290,9 +278,9 @@ export default function VoiceConsole({
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <Volume2 size={18} /> Vocal Tract Acoustic Parameters
+                <Volume2 size={16} /> Extracted Acoustic Parameters
               </div>
-              <span className="card-tag">DIGITAL SIGNAL PROCESSING</span>
+              <span className="card-tag">SIGNAL DSP</span>
             </div>
 
             <div className="metric-row">
@@ -303,73 +291,73 @@ export default function VoiceConsole({
             </div>
 
             <div className="metric-row">
-              <span className="metric-label">Enrolled Baseline Pitch:</span>
+              <span className="metric-label">Baseline Pitch Target:</span>
               <span className="metric-value">
                 {vBase.pitch_mean} Hz (±{vBase.pitch_std || 25} Hz)
               </span>
             </div>
 
             <div className="metric-row">
-              <span className="metric-label">Spectral Centroid (Timbre):</span>
+              <span className="metric-label">Spectral Centroid:</span>
               <span className="metric-value">
                 {recorder.metrics.centroid ? `${recorder.metrics.centroid} Hz` : '-- Hz'}{' '}
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Base: {vBase.centroid_mean} Hz)</span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>(Target: {vBase.centroid_mean} Hz)</span>
               </span>
             </div>
 
             <div className="metric-row">
-              <span className="metric-label">Acoustic Signal Energy:</span>
+              <span className="metric-label">Signal Energy (RMS):</span>
               <span className="metric-value">{recorder.metrics.rms || '--'}</span>
             </div>
 
             <div
               style={{
                 marginTop: '1.25rem',
-                padding: '1rem',
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.06)'
+                padding: '0.85rem',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)'
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                  Acoustic Discrepancy Level:
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                  Acoustic Discrepancy:
                 </span>
                 <span className={`log-badge ${isSpoof ? 'badge-danger' : isMatch ? 'badge-info' : 'badge-warn'}`}>
-                  {percent !== null ? (isSpoof ? `SPOOF ALERT (${percent}%)` : `MATCH (${percent}%)`) : 'AWAITING AUDIO'}
+                  {percent !== null ? (isSpoof ? `MISMATCH (${percent}%)` : `MATCH (${percent}%)`) : 'AWAITING AUDIO'}
                 </span>
               </div>
 
-              <div className="meter-bar-container" style={{ margin: '0.6rem 0 0.2rem' }}>
+              <div className="meter-bar-container" style={{ margin: '0.5rem 0' }}>
                 <div
                   className="meter-bar-fill"
                   style={{
                     width: `${percent !== null ? percent : 0}%`,
-                    background: isSpoof ? 'var(--accent-danger)' : 'var(--accent-emerald)'
+                    background: isSpoof ? 'var(--accent-danger)' : 'var(--accent-success)'
                   }}
                 />
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '0.4rem' }}>
+              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                 {isMatch
-                  ? `Vocal cords and tract resonances match ${ownerName} with verified accuracy.`
+                  ? `Vocal pitch and formant distribution match ${ownerName}.`
                   : isSpoof
-                  ? `Significant pitch discrepancy (>100 Hz delta). Not ${ownerName}!`
+                  ? `Significant acoustic delta. Speaker not confirmed.`
                   : 'Speak into microphone or click the test buttons below.'}
               </div>
             </div>
 
             {/* Quick Simulation Tests */}
             <div style={{ marginTop: '1.25rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent-cyan)', marginBottom: '0.5rem' }}>
-                🧪 Quick Simulation Tests:
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+                Quick Simulations:
               </div>
               <div className="btn-group">
                 <button className="btn btn-success" onClick={onSimulateValid}>
-                  <ShieldCheck size={14} /> Simulate Genuine Voice (It's Me)
+                  <ShieldCheck size={14} /> Simulate Genuine Voice
                 </button>
                 <button className="btn btn-danger" onClick={onSimulateSpoof}>
-                  <AlertTriangle size={14} /> Simulate Voice Impersonator (Stranger)
+                  <AlertTriangle size={14} /> Simulate Impersonator
                 </button>
               </div>
             </div>
@@ -378,13 +366,12 @@ export default function VoiceConsole({
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <span>🛡️</span> Continuous Zero-Trust Security Strategy
+                <span>🛡️</span> Zero-Trust Voice Policy
               </div>
             </div>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Voice acoustics acts as the <strong>Zero-Trust Step-Up arbiter</strong>. If your hands are tired or cold
-              and keystroke timing drifts, speaking a 3-second passphrase immediately re-authenticates your physical
-              identity without locking you out.
+              Voice acoustics acts as a secondary zero-trust factor. When typing cadence drifts due to fatigue or keyboard
+              swapping, vocal verification provides immediate re-authentication without session disruption.
             </p>
           </div>
         </div>

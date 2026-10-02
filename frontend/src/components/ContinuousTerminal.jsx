@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   Terminal,
   ShieldCheck,
@@ -11,7 +11,6 @@ import {
   Mic,
   AlertOctagon,
   KeyRound,
-  CheckCircle2,
   Volume2
 } from 'lucide-react';
 
@@ -32,7 +31,7 @@ export default function ContinuousTerminal({
   const timelineCanvasRef = useRef(null);
   const riskHistoryRef = useRef([]);
 
-  // Draw Keystroke Pulse Oscilloscope
+  // Draw Keystroke Pulse Oscilloscope (Calm Slate/Emerald)
   useEffect(() => {
     const canvas = keystrokeCanvasRef.current;
     if (!canvas) return;
@@ -40,10 +39,10 @@ export default function ContinuousTerminal({
     const width = canvas.width;
     const height = canvas.height;
 
-    ctx.fillStyle = '#050811';
+    ctx.fillStyle = '#090b10';
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, height - 20);
@@ -53,8 +52,8 @@ export default function ContinuousTerminal({
     const pulses = collector.pulseData;
     if (pulses.length === 0) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-      ctx.font = '12px Fira Code, monospace';
-      ctx.fillText('⌨️ Awaiting keystrokes... Type your thoughts into the box above.', 20, height / 2 + 4);
+      ctx.font = '12px Inter, sans-serif';
+      ctx.fillText('Awaiting keystrokes... Type naturally in the console above.', 20, height / 2 + 4);
       return;
     }
 
@@ -63,34 +62,32 @@ export default function ContinuousTerminal({
 
     pulses.forEach((p, i) => {
       const age = (now - p.time) / 1000;
-      const alpha = Math.max(0.2, 1.0 - age * 0.08);
+      const alpha = Math.max(0.3, 1.0 - age * 0.08);
 
-      const barH = (Math.min(Math.max(p.dwell, 30), 400) / 400) * (height - 40);
+      const barH = (Math.min(Math.max(p.dwell, 30), 350) / 350) * (height - 35);
       const x = (i + 1) * spacing;
       const y = height - 20 - barH;
 
-      let color = '#10b981';
+      // Subtle, calm colors
+      let color = '#10b981'; // Calm emerald
       if (p.dwell > 170) color = '#f59e0b';
-      if (p.dwell > 280) color = '#ef4444';
+      if (p.dwell > 280) color = '#f43f5e';
 
       ctx.fillStyle = color;
       ctx.globalAlpha = alpha;
-      ctx.fillRect(x - 5, y, 10, barH);
+      ctx.fillRect(x - 4, y, 8, barH);
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '10px monospace';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px Fira Code, monospace';
       ctx.textAlign = 'center';
       const label = p.key.length === 1 ? p.key : p.key.substring(0, 3);
       ctx.fillText(label, x, height - 6);
-
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillText(`${Math.round(p.dwell)}ms`, x, y - 4);
     });
 
     ctx.globalAlpha = 1.0;
   }, [collector.pulseData]);
 
-  // Risk timeline
+  // Risk timeline (Subtle refined line)
   useEffect(() => {
     const canvas = timelineCanvasRef.current;
     if (!canvas) return;
@@ -103,20 +100,16 @@ export default function ContinuousTerminal({
       if (riskHistoryRef.current.length > 40) riskHistoryRef.current.shift();
     }
 
-    ctx.fillStyle = '#050811';
+    ctx.fillStyle = '#090b10';
     ctx.fillRect(0, 0, width, height);
 
-    ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
-    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.setLineDash([3, 3]);
     ctx.beginPath();
-    ctx.moveTo(0, height * 0.25);
-    ctx.lineTo(width, height * 0.25);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(245, 158, 11, 0.3)';
-    ctx.beginPath();
-    ctx.moveTo(0, height * 0.5);
-    ctx.lineTo(width, height * 0.5);
+    ctx.moveTo(0, height * 0.3);
+    ctx.lineTo(width, height * 0.3);
+    ctx.moveTo(0, height * 0.6);
+    ctx.lineTo(width, height * 0.6);
     ctx.stroke();
     ctx.setLineDash([]);
 
@@ -124,7 +117,7 @@ export default function ContinuousTerminal({
     if (points.length < 2) return;
 
     const step = width / (points.length - 1);
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
 
     points.forEach((score, i) => {
@@ -136,8 +129,8 @@ export default function ContinuousTerminal({
 
     const lastScore = points[points.length - 1];
     let strokeColor = '#10b981';
-    if (lastScore >= 50) strokeColor = '#f59e0b';
-    if (lastScore >= 75) strokeColor = '#ef4444';
+    if (lastScore >= 45) strokeColor = '#f59e0b';
+    if (lastScore >= 70) strokeColor = '#f43f5e';
 
     ctx.strokeStyle = strokeColor;
     ctx.stroke();
@@ -146,7 +139,7 @@ export default function ContinuousTerminal({
     const lastY = height - (lastScore / 100) * (height - 16) - 8;
     ctx.fillStyle = strokeColor;
     ctx.beginPath();
-    ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+    ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
     ctx.fill();
   }, [assessment]);
 
@@ -167,117 +160,113 @@ export default function ContinuousTerminal({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       
       {/* =========================================================================
-          HERO VERDICT CARD: Who is at the keyboard right now?
+          REFINED IDENTITY VERDICT CARD (Calm, Elegant Surface)
          ========================================================================= */}
       <div
         className="glass-card"
         style={{
           border: isMe
-            ? '2px solid rgba(16, 185, 129, 0.7)'
+            ? '1px solid rgba(16, 185, 129, 0.4)'
             : isIntruder
-            ? '2px solid rgba(239, 68, 68, 0.8)'
+            ? '1px solid rgba(244, 63, 94, 0.4)'
             : isDrift
-            ? '2px solid rgba(245, 158, 11, 0.7)'
-            : '2px solid rgba(56, 189, 248, 0.3)',
+            ? '1px solid rgba(245, 158, 11, 0.4)'
+            : '1px solid var(--border-subtle)',
           background: isMe
-            ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(10, 14, 23, 0.95) 100%)'
+            ? 'rgba(16, 185, 129, 0.04)'
             : isIntruder
-            ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(10, 14, 23, 0.95) 100%)'
+            ? 'rgba(244, 63, 94, 0.05)'
             : isDrift
-            ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(10, 14, 23, 0.95) 100%)'
-            : 'rgba(17, 24, 39, 0.85)',
-          padding: '1.5rem',
-          boxShadow: isIntruder ? '0 0 25px rgba(239, 68, 68, 0.3)' : 'none'
+            ? 'rgba(245, 158, 11, 0.04)'
+            : 'var(--bg-surface)',
+          padding: '1.5rem'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <div
               style={{
-                width: '56px',
-                height: '56px',
-                borderRadius: '50%',
+                width: '48px',
+                height: '48px',
+                borderRadius: '10px',
                 background: isMe
-                  ? 'rgba(16, 185, 129, 0.2)'
+                  ? 'rgba(16, 185, 129, 0.12)'
                   : isIntruder
-                  ? 'rgba(239, 68, 68, 0.25)'
+                  ? 'rgba(244, 63, 94, 0.12)'
                   : isDrift
-                  ? 'rgba(245, 158, 11, 0.2)'
-                  : 'rgba(56, 189, 248, 0.15)',
+                  ? 'rgba(245, 158, 11, 0.12)'
+                  : 'var(--bg-surface-elevated)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: `2px solid ${isMe ? '#10b981' : isIntruder ? '#ef4444' : isDrift ? '#f59e0b' : '#38bdf8'}`
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}
             >
               {isMe ? (
-                <UserCheck size={32} color="#10b981" />
+                <UserCheck size={26} color="#10b981" />
               ) : isIntruder ? (
-                <UserX size={32} color="#ef4444" />
+                <UserX size={26} color="#f43f5e" />
               ) : isDrift ? (
-                <ShieldAlert size={32} color="#f59e0b" />
+                <ShieldAlert size={26} color="#f59e0b" />
               ) : (
-                <Terminal size={32} color="#38bdf8" />
+                <Terminal size={26} color="#94a3b8" />
               )}
             </div>
 
             <div>
-              <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                CURRENT BIOMETRIC VERDICT
+              <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                BIOMETRIC IDENTITY VERIFICATION
               </div>
-              <div style={{ fontSize: '1.45rem', fontWeight: 900, letterSpacing: '0.02em', marginTop: '0.15rem' }}>
+              <div style={{ fontSize: '1.35rem', fontWeight: 700, letterSpacing: '-0.01em', marginTop: '0.15rem' }}>
                 {isMe ? (
-                  <span style={{ color: 'var(--accent-emerald)' }}>✅ IT'S YOU! ({ownerName} Confirmed)</span>
+                  <span style={{ color: 'var(--accent-success)' }}>Identity Confirmed: {ownerName}</span>
                 ) : isIntruder ? (
-                  <span style={{ color: 'var(--accent-danger)' }}>🚨 INTRUDER ALERT! (NOT {ownerName.toUpperCase()})</span>
+                  <span style={{ color: 'var(--accent-danger)' }}>Unrecognized Operator (Intruder Flagged)</span>
                 ) : isDrift ? (
-                  <span style={{ color: 'var(--accent-warning)' }}>⚠️ SLIGHT CADENCE DRIFT (Unusual Rhythm)</span>
+                  <span style={{ color: 'var(--accent-warning)' }}>Cadence Variation Detected</span>
                 ) : (
-                  <span style={{ color: 'var(--accent-cyan)' }}>⌨️ TYPE 5+ CHARACTERS TO IDENTIFY WHO YOU ARE</span>
+                  <span style={{ color: 'var(--text-primary)' }}>Type 5+ characters to evaluate identity</span>
                 )}
               </div>
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
                 {isMe ? (
-                  <>Your finger hold durations and typing rhythm match {ownerName}'s subconscious motor memory (<strong>{100 - riskScore}% Match</strong>).</>
+                  <>Keystroke hold times and rhythm closely align with {ownerName}'s habitual motor pattern (<strong>{100 - riskScore}% confidence</strong>).</>
                 ) : isIntruder ? (
-                  <>Typing cadence deviates by <strong>{riskScore}%</strong> from {ownerName}'s baseline. Physical terminal takeover suspected!</>
+                  <>Keystroke cadence deviates significantly ({riskScore}% anomaly) from {ownerName}'s enrolled profile.</>
                 ) : isDrift ? (
-                  <>Minor variation in typing speed (could be typing with one hand, cold fingers, or fatigue).</>
+                  <>Typing speed has minor drift. Possible fatigue or cold hands.</>
                 ) : (
-                  <>Start typing naturally into the defense box below. The system measures hold time and flight latency between keys.</>
+                  <>Type naturally in the console below. The neural timing model analyzes hold and transition latencies.</>
                 )}
               </p>
             </div>
           </div>
 
-          {/* Quick Match Percentage Pill */}
-          <div style={{ textAlign: 'right', minWidth: '130px' }}>
-            <div style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-              IDENTITY CONFIDENCE
+          <div style={{ textAlign: 'right', minWidth: '120px' }}>
+            <div style={{ fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
+              MATCH CONFIDENCE
             </div>
             <div
               style={{
-                fontSize: '2.2rem',
-                fontWeight: 900,
+                fontSize: '2rem',
+                fontWeight: 700,
                 fontFamily: 'var(--font-mono)',
-                color: isMe ? 'var(--accent-emerald)' : isIntruder ? 'var(--accent-danger)' : 'var(--text-primary)',
-                lineHeight: 1
+                color: isMe ? 'var(--accent-success)' : isIntruder ? 'var(--accent-danger)' : 'var(--text-primary)',
+                lineHeight: 1,
+                marginTop: '0.2rem'
               }}
             >
               {isAwaiting ? '--' : `${100 - riskScore}%`}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-              {isMe ? 'Verified Genuine' : isIntruder ? 'Impersonator Flagged' : 'Awaiting input'}
-            </div>
           </div>
         </div>
 
-        {/* 1-Click Calibration & Fast Action Toolbar */}
+        {/* Action Controls */}
         <div
           style={{
             marginTop: '1.25rem',
             paddingTop: '1rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            borderTop: '1px solid var(--border-subtle)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -285,61 +274,55 @@ export default function ContinuousTerminal({
             gap: '0.75rem'
           }}
         >
-          <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
-            {/* 1-Click Auto Calibrate */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               className="btn btn-success"
-              style={{ padding: '0.55rem 1.1rem', fontWeight: 700 }}
               onClick={onAutoCalibrate}
               title="Click after typing any sentence to adapt the baseline to your exact speed"
             >
-              <Target size={16} /> 🎯 1-Click: "Teach System This is Me"
+              <Target size={15} /> Set as My Baseline
             </button>
 
-            {/* Quick Simulate Intruder */}
             <button
               className="btn btn-danger"
-              style={{ padding: '0.55rem 1rem' }}
               onClick={onQuickSimulateStranger}
               title="Test how the system detects a stranger typing"
             >
-              <UserX size={16} /> 👥 Test Stranger / Intruder Typing
+              <UserX size={15} /> Simulate Intruder
             </button>
 
-            {/* Quick Voice Check */}
             <button
-              className="btn btn-primary"
-              style={{ padding: '0.55rem 1rem' }}
+              className="btn"
               onClick={onQuickVoiceVerify}
               title="Record 3s voice to test vocal verification right here"
             >
-              <Mic size={16} /> 🎙️ Quick Voice Check (Say Hello)
+              <Mic size={15} /> Quick Voice Check
             </button>
           </div>
 
           <div style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
-            Target: <strong style={{ color: 'var(--accent-cyan)' }}>{ownerName}</strong>
+            Baseline Target: <strong style={{ color: 'var(--text-primary)' }}>{ownerName}</strong>
           </div>
         </div>
 
-        {/* Quick Voice Inline Alert Bar if voice was just tested */}
+        {/* Quick Voice Notification Bar */}
         {quickVoiceState && (
           <div
             style={{
               marginTop: '1rem',
               padding: '0.75rem 1rem',
-              borderRadius: '6px',
-              background: quickVoiceState.isVerified ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-              border: `1px solid ${quickVoiceState.isVerified ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)'}`,
+              borderRadius: 'var(--radius-sm)',
+              background: quickVoiceState.isVerified ? 'var(--accent-success-subtle)' : 'var(--accent-danger-subtle)',
+              border: `1px solid ${quickVoiceState.isVerified ? 'rgba(16, 185, 129, 0.3)' : 'rgba(244, 63, 94, 0.3)'}`,
               display: 'flex',
               alignItems: 'center',
               gap: '0.75rem'
             }}
           >
-            <Volume2 size={20} color={quickVoiceState.isVerified ? '#10b981' : '#ef4444'} />
+            <Volume2 size={18} color={quickVoiceState.isVerified ? '#10b981' : '#f43f5e'} />
             <div>
-              <strong style={{ color: quickVoiceState.isVerified ? 'var(--accent-emerald)' : 'var(--accent-danger)' }}>
-                {quickVoiceState.isVerified ? '🎙️ Voice Confirmed: Matches You!' : '🚨 Voice Discrepancy: Different Speaker!'}
+              <strong style={{ fontSize: '0.82rem', color: quickVoiceState.isVerified ? 'var(--accent-success)' : 'var(--accent-danger)' }}>
+                {quickVoiceState.isVerified ? 'Voice Confirmed: Matches Enrolled Voiceprint' : 'Voice Discrepancy: Mismatched Speaker'}
               </strong>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                 {quickVoiceState.message}
@@ -354,15 +337,15 @@ export default function ContinuousTerminal({
          ========================================================================= */}
       <div className="grid-workspace">
         
-        {/* Left: Interactive Typing Area */}
+        {/* Left: Clean Matte Dark Console */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <Terminal size={18} />
-                Live Defense Console (Type Naturally Here)
+                <Terminal size={16} />
+                Continuous Keystroke Capture Console
               </div>
-              <span className="card-tag">SUB-MS SAMPLING ACTIVE</span>
+              <span className="card-tag">1,000 Hz SAMPLING</span>
             </div>
 
             <div className="terminal-window">
@@ -372,18 +355,18 @@ export default function ContinuousTerminal({
                   <span className="terminal-dot dot-yellow"></span>
                   <span className="terminal-dot dot-green"></span>
                 </div>
-                <span>operator@defense-workstation: ~</span>
-                <span>SEC-LEVEL: ZERO-TRUST</span>
+                <span>operator@workstation: ~</span>
+                <span>ZERO-TRUST AUTH</span>
               </div>
               <div className="terminal-body">
                 <div className="terminal-prompt-box">
-                  $ aegis-biometric-agent --monitor-continuous --target="{ownerName}"
+                  $ aegis-agent --monitor --profile="{ownerName}"
                 </div>
                 <textarea
                   id="react-terminal-input"
                   className="terminal-input-area"
-                  style={{ minHeight: '140px' }}
-                  placeholder="Type anything naturally here... (e.g., 'Hello this is me, checking cloud infrastructure credentials and database logs')"
+                  style={{ minHeight: '135px' }}
+                  placeholder="Type anything naturally here... (e.g., 'Verifying database credentials and system security access')"
                   onKeyDown={collector.handleKeyDown}
                   onKeyUp={collector.handleKeyUp}
                 />
@@ -391,9 +374,9 @@ export default function ContinuousTerminal({
             </div>
 
             <div className="sample-text-guide">
-              <strong>💡 Click to paste sample phrase:</strong>{' '}
+              <strong>💡 Paste example sentence:</strong>{' '}
               <span
-                style={{ cursor: 'pointer', color: 'var(--accent-cyan)', textDecoration: 'underline' }}
+                style={{ cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline' }}
                 onClick={() => {
                   const el = document.getElementById('react-terminal-input');
                   if (el) {
@@ -418,7 +401,7 @@ export default function ContinuousTerminal({
             >
               <div className="btn-group">
                 <button className="btn btn-primary" onClick={onEvaluate}>
-                  <Sparkles size={14} /> Evaluate Now
+                  <Sparkles size={14} /> Evaluate
                 </button>
                 <button
                   className="btn"
@@ -428,13 +411,13 @@ export default function ContinuousTerminal({
                     onClear();
                   }}
                 >
-                  <RefreshCw size={14} /> Clear Input
+                  <RefreshCw size={14} /> Clear
                 </button>
               </div>
 
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                Keys Logged: <strong style={{ color: 'var(--accent-cyan)' }}>{collector.keyCount}</strong> | Typing Speed:{' '}
-                <strong style={{ color: 'var(--accent-emerald)' }}>{features ? `${features.wpm} WPM` : '--'}</strong>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                Keys: <strong style={{ color: 'var(--text-primary)' }}>{collector.keyCount}</strong> | Speed:{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>{features ? `${features.wpm} WPM` : '--'}</strong>
               </div>
             </div>
           </div>
@@ -443,44 +426,43 @@ export default function ContinuousTerminal({
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <span>📊</span> Live Keystroke Oscilloscope (Finger Hold Duration)
+                <span>📊</span> Real-Time Key Hold Duration Stream
               </div>
-              <span className="card-tag">SUB-MS RESOLUTION</span>
+              <span className="card-tag">SUB-MS DWELL</span>
             </div>
             <div className="canvas-wrapper">
-              <canvas ref={keystrokeCanvasRef} width={700} height={120} />
+              <canvas ref={keystrokeCanvasRef} width={700} height={110} />
             </div>
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '0.72rem',
+                fontSize: '0.7rem',
                 color: 'var(--text-muted)'
               }}
             >
-              <span>Bar Height = Finger Hold Time (ms)</span>
-              <span>Bar Spacing = Flight Latency (ms)</span>
-              <span>Green: Normal | Amber: Slow (&gt;170ms) | Red: Outlier</span>
+              <span>Height: Key Depress Duration</span>
+              <span>Spacing: Release-to-Press Latency</span>
+              <span>Green: Regular | Amber: Hesitant | Red: Outlier</span>
             </div>
           </div>
         </div>
 
-        {/* Right: Human-Understandable Biometric Parameters */}
+        {/* Right: Biometric Parameters Card */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          {/* Plain English Metrics Card */}
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <ShieldCheck size={18} /> Biometric Parameters vs {ownerName}
+                <ShieldCheck size={16} /> Observed Parameters vs {ownerName}
               </div>
-              <span className="card-tag">LIVE VERIFICATION</span>
+              <span className="card-tag">TELEMETRY</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div className="metric-row">
-                <span className="metric-label">Finger Hold Time (Dwell):</span>
+                <span className="metric-label">Key Hold Duration (Dwell):</span>
                 <span className="metric-value">
                   {features ? `${features.dwell_mean} ms` : '-- ms'}{' '}
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
@@ -490,7 +472,7 @@ export default function ContinuousTerminal({
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Inter-Key Latency (Flight):</span>
+                <span className="metric-label">Transition Latency (Flight):</span>
                 <span className="metric-value">
                   {features ? `${features.flight_mean} ms` : '-- ms'}{' '}
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
@@ -500,14 +482,14 @@ export default function ContinuousTerminal({
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Typing Cadence & Rhythm:</span>
+                <span className="metric-label">Rhythm Stability:</span>
                 <span className="metric-value">
-                  {features ? (features.rhythm_cv < 0.4 ? '✅ Smooth & Rhythmic' : '⚠️ Irregular / Hesitant') : '--'}
+                  {features ? (features.rhythm_cv < 0.4 ? 'Normal Consistency' : 'Erratic Pacing') : '--'}
                 </span>
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Speed & Words Per Minute:</span>
+                <span className="metric-label">Typing Velocity:</span>
                 <span className="metric-value">
                   {features ? `${features.wpm} WPM` : '-- WPM'}{' '}
                   <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
@@ -517,7 +499,7 @@ export default function ContinuousTerminal({
               </div>
 
               <div className="metric-row">
-                <span className="metric-label">Correction / Backspace Rate:</span>
+                <span className="metric-label">Correction Rate:</span>
                 <span className="metric-value">
                   {features ? `${Math.round(features.backspace_rate * 100)}%` : '--%'}
                 </span>
@@ -527,26 +509,26 @@ export default function ContinuousTerminal({
             <div
               style={{
                 marginTop: '1.25rem',
-                padding: '0.85rem',
-                background: 'rgba(0,0,0,0.3)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.06)'
+                padding: '0.75rem',
+                background: 'rgba(0,0,0,0.2)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--border-subtle)'
               }}
             >
-              <div style={{ fontWeight: 700, color: 'var(--accent-cyan)', fontSize: '0.8rem', marginBottom: '0.35rem' }}>
-                🛡️ AI Security Advice:
+              <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.78rem', marginBottom: '0.2rem' }}>
+                System Assessment:
               </div>
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                {assessment?.recommendation || 'Continuous authentication passing. Session verified.'}
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                {assessment?.recommendation || 'Continuous authentication passing.'}
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
               <button className="btn btn-danger" onClick={onQuarantine} style={{ flex: 1 }}>
-                <AlertOctagon size={14} /> Quarantine Session
+                <AlertOctagon size={14} /> Quarantine
               </button>
-              <button className="btn btn-primary" onClick={onStepUp} style={{ flex: 1 }}>
-                <KeyRound size={14} /> Challenge Step-Up
+              <button className="btn" onClick={onStepUp} style={{ flex: 1 }}>
+                <KeyRound size={14} /> Step-Up MFA
               </button>
             </div>
           </div>
@@ -555,12 +537,12 @@ export default function ContinuousTerminal({
           <div className="glass-card">
             <div className="card-header">
               <div className="card-title">
-                <span>📈</span> Continuous Risk Trend Stream
+                <span>📈</span> Continuous Risk Trend
               </div>
-              <span className="card-tag">50-SAMPLE WINDOW</span>
+              <span className="card-tag">TIME SERIES</span>
             </div>
             <div className="canvas-wrapper">
-              <canvas ref={timelineCanvasRef} width={400} height={120} />
+              <canvas ref={timelineCanvasRef} width={400} height={100} />
             </div>
           </div>
 
